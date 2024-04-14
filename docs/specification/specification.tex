@@ -1,0 +1,69 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{authblk}
+\usepackage{ragged2e}
+
+\renewcommand{\Authfont}{\RaggedRight\normalsize}
+\renewcommand{\Affilfont}{\RaggedRight\normalsize}
+\titleformat*{\section}{\large\bfseries\RaggedRight}
+
+\title{\RaggedRight\huge \textbf{Előzetes specifikáció}
+ \newline \vspace*{6pt}\Large Okos mezőgazdasági rendszer}
+\author{
+Amer Jusuf (D0V869)
+\newline
+Friskó Dominika (ZPDBP7)
+\newline
+Sasvári Szabolcs Attila (TWOZG6)
+\newline
+\textbf{Váradi Kristóf (BP17IB)}}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Áttekintés}
+
+Az Okos Mezőgazdasági Rendszer egy olyan ágensekből álló környezet,
+amely cselekvőképes robotokkal javítja a növénytermesztés hatékonyságát.
+A rendszer három fő komponensből áll: egy terepanalízis drónból, amely a megművelt területek állapotát monitorozza,
+egy ültető és betakarító ágensből, amely az optimális időpontban betakarítja a terményeket, illetve egy öntözési és tápanyagellátó robotból,
+amely célzottan látja el a növényeket vízzel és tápanyagokkal.
+Ezek az ágensek együttműködve, emberi beavatkozás nélkül
+ellenőrzik és javítják a termények minőségét és mérséklik a mezőgazdasági tevékenységek környezeti hatását.
+
+\subsection{Célkitűzések}
+Mezőgazdasági adatok monitorozása,
+termények automatizált ültetése, kezelése és betakarítása
+a hozam növelése és az erőforrásigény csökkentése érdekében.
+Kollaboráció a rendszer különböző szereplői között.
+Öntözés, növényvédelmi kezelések célzott alkalmazása.
+A fenntarthatóságának javítása a mezőgazdaságban,
+az ökológiai lábnyom csökkentése.
+
+\section{Ágensek}
+
+Az alábbi ágensek egymással kommunikálva, emberi beavatkozás nélkül
+végzik el a hatáskörükbe tartozó feladatokat, így az erőforrások (magok, t
+panyagok, vegyszerek, stb.) biztosításán kívül a rendszer szereplői autonóm módon működnek.
+
+\subsection{Terepanalízis Drón}
+
+A megfigyelt mezőgazdasági területek monitorozása,
+talaj és a növények állapotának elemzése,
+a megszerzett adatok közlése a rendszer más szereplőivel.
+Szárazság, tápanyaghiány vagy kártevőjelenlét detektálása.
+
+\subsection{Automatizált Betakarító}
+
+Az optimális ültetési és betakarítási időpont meghatározása, az ütemezett feladatok végrehajtása.
+
+\subsection{Öntözési és Tápanyagellátó Robot}
+
+Specifikus területek célzott öntözése és tápanyagellátása, kártevőirtás.
+A víz- és tápanyaghasználat optimalizálása.
+
+\end{document}
