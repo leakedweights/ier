@@ -12,7 +12,7 @@
 
 MAS agrobots {
 
-    environment: example.Env(10)
+    environment: src.env.agrobots.FarmEnvironment(10)
 
     agents: drone;
             harvester;

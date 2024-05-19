@@ -12,7 +12,7 @@
 
 MAS agrobots {
 
-    environment: example.Env(10)
+    environment: src.env.agrobots.Env(10)
 
     agents: bob;
             alice;

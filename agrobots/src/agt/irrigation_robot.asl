@@ -6,19 +6,16 @@
 
 +!optimize_resources <-
     .print("Optimizing water and nutrient use...");
-    // Simulate optimization
     .wait(1000);
     !irrigate.
 
 +!irrigate <-
     .print("Irrigating specific areas...");
-    // Simulate irrigation
     .wait(1000);
     !apply_nutrients.
 
 +!apply_nutrients <-
     .print("Applying nutrients to specific areas...");
-    // Simulate nutrient application
     .wait(1000);
     .print("Irrigation and nutrient application completed.").
 
