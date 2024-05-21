@@ -4,3 +4,8 @@
 *.log
 *.gz
 jason
+
+.vscode
+.gradle
+build
+bin

@@ -12,7 +12,7 @@ cd agrobots
 jason agrobots.mas2j -v
 ```
 
-## Project Outline
+## Project outline
 
 Agrobots simulates an autonomous agricultural system that is capable of sustaining a farm, involving planting and harvesting specific types of crops, watering fields, and surveying for dead plants.
 
@@ -23,4 +23,8 @@ The Farm consists of a `25x25` rectangular grid, **every second row and column i
 Assuming everything goes well, a crop should become mature in **30 iterations**. Crops should be **watered at least every 5 iterations**. If the plants in a specific field are left unwatered for more than 5 iterations, its **health decreases by 10%** each iteration until the next irrigation. In a single iteration, **each plant dies with `p=0.05`**.
 
 ### Survey Drones
+
+### Planter-Harvesters
+
+### Irrigation Robots
 

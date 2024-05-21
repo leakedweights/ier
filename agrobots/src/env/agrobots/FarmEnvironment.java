@@ -1,7 +1,5 @@
 package src.env.agrobots;
 
-// Environment code for project agrobots
-
 import jason.asSyntax.*;
 import jason.environment.*;
 import jason.asSyntax.parser.*;
