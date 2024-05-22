@@ -17,6 +17,12 @@ public class FarmEnvironment extends Environment {
     public static final int GRID_SIZE = 25;
     public static final int GARB  = 16;
 
+    public static final int FIELD = 32;
+    public static final int PLANTED = 64;
+    public static final int WATERED = 128;
+    public static final int DEAD = 256;
+
+
     public static final Term    ns = Literal.parseLiteral("next(slot)");
     public static final Term    pg = Literal.parseLiteral("pick(garb)");
     public static final Term    dg = Literal.parseLiteral("drop(garb)");
@@ -39,20 +45,22 @@ public class FarmEnvironment extends Environment {
 
     @Override
     public boolean executeAction(String ag, Structure action) {
-        logger.info(ag+" doing: "+ action);
+        logger.info(ag + " doing: " + action);
         try {
             if (action.equals(ns)) {
                 model.nextSlot();
             } else if (action.getFunctor().equals("move_towards")) {
-                int x = (int)((NumberTerm)action.getTerm(0)).solve();
-                int y = (int)((NumberTerm)action.getTerm(1)).solve();
-                model.moveTowards(x,y);
-            } else if (action.equals(pg)) {
-                model.pickGarb();
-            } else if (action.equals(dg)) {
-                model.dropGarb();
-            } else if (action.equals(bg)) {
-                model.burnGarb();
+                int x = (int) ((NumberTerm) action.getTerm(0)).solve();
+                int y = (int) ((NumberTerm) action.getTerm(1)).solve();
+                model.moveTowards(x, y);
+            } else if (action.getFunctor().equals("plant")) {
+                int x = (int) ((NumberTerm) action.getTerm(0)).solve();
+                int y = (int) ((NumberTerm) action.getTerm(1)).solve();
+                model.plant(x, y);
+            } else if (action.getFunctor().equals("water")) {
+                int x = (int) ((NumberTerm) action.getTerm(0)).solve();
+                int y = (int) ((NumberTerm) action.getTerm(1)).solve();
+                model.water(x, y);
             } else {
                 return false;
             }
@@ -64,28 +72,39 @@ public class FarmEnvironment extends Environment {
 
         try {
             Thread.sleep(200);
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         informAgsEnvironmentChanged();
         return true;
     }
 
+
     void updatePercepts() {
         clearPercepts();
-
+    
         Location r1Loc = model.getAgPos(0);
         Location r2Loc = model.getAgPos(1);
-
+    
         Literal pos1 = Literal.parseLiteral("pos(r1," + r1Loc.x + "," + r1Loc.y + ")");
         Literal pos2 = Literal.parseLiteral("pos(r2," + r2Loc.x + "," + r2Loc.y + ")");
-
+    
         addPercept(pos1);
         addPercept(pos2);
-
-        if (model.hasObject(GARB, r1Loc)) {
-            addPercept(g1);
-        }
-        if (model.hasObject(GARB, r2Loc)) {
-            addPercept(g2);
+    
+        for (int x = 0; x < GRID_SIZE; x++) {
+            for (int y = 0; y < GRID_SIZE; y++) {
+                if (model.hasObject(FIELD, x, y)) {
+                    if (model.hasObject(PLANTED, x, y)) {
+                        addPercept(Literal.parseLiteral("planted(" + x + "," + y + ")"));
+                    }
+                    if (model.hasObject(WATERED, x, y)) {
+                        addPercept(Literal.parseLiteral("watered(" + x + "," + y + ")"));
+                    }
+                    if (model.hasObject(DEAD, x, y)) {
+                        addPercept(Literal.parseLiteral("dead(" + x + "," + y + ")"));
+                    }
+                }
+            }
         }
     }
 
@@ -109,12 +128,47 @@ public class FarmEnvironment extends Environment {
                 e.printStackTrace();
             }
 
+            for (int x = 0; x < GRID_SIZE; x++) {
+                for (int y = 0; y < GRID_SIZE; y++) {
+                    if (x % 2 == 0 && y % 2 == 0) {
+                        add(FIELD, x, y);
+                        add(PLANTED, x, y);
+                    } else {
+                        add(FIELD, x, y);
+                    }
+                    
+                }
+            }
+
             // initial location of garbage
             add(GARB, 3, 0);
             add(GARB, GRID_SIZE-1, 0);
             add(GARB, 1, 2);
             add(GARB, 0, GRID_SIZE-2);
             add(GARB, GRID_SIZE-1, GRID_SIZE-1);
+        }
+
+        void plant(int x, int y) {
+            if (hasObject(FIELD, x, y)) {
+                add(PLANTED, x, y);
+            }
+        }
+    
+        void water(int x, int y) {
+            if (hasObject(PLANTED, x, y)) {
+                add(WATERED, x, y);
+            }
+        }
+    
+        void simulatePlantDeath() {
+            for (int x = 0; x < GRID_SIZE; x++) {
+                for (int y = 0; y < GRID_SIZE; y++) {
+                    if (hasObject(WATERED, x, y) && random.nextDouble() < 0.05) {
+                        remove(WATERED, x, y);
+                        add(DEAD, x, y);
+                    }
+                }
+            }
         }
 
         void nextSlot() throws Exception {
@@ -178,28 +232,36 @@ public class FarmEnvironment extends Environment {
 
         public FarmView(FarmModel model) {
             super(model, "Farm World", 600);
-            defaultFont = new Font("Arial", Font.BOLD, 18); // change default font
+            defaultFont = new Font("Arial", Font.BOLD, 18);
             setVisible(true);
             repaint();
         }
-
-        /** draw application objects */
+    
         @Override
         public void draw(Graphics g, int x, int y, int object) {
             switch (object) {
-            case FarmEnvironment.GARB:
-                drawGarb(g, x, y);
-                break;
+                case FarmEnvironment.FIELD:
+                    drawField(g, x, y);
+                    break;
+                case FarmEnvironment.PLANTED:
+                    drawPlanted(g, x, y);
+                    break;
+                case FarmEnvironment.WATERED:
+                    drawWatered(g, x, y);
+                    break;
+                case FarmEnvironment.DEAD:
+                    drawDead(g, x, y);
+                    break;
             }
         }
-
+    
         @Override
         public void drawAgent(Graphics g, int x, int y, Color c, int id) {
-            String label = "R"+(id+1);
+            String label = "R" + (id + 1);
             c = Color.blue;
             if (id == 0) {
                 c = Color.yellow;
-                if (((FarmModel)model).r1HasGarb) {
+                if (((FarmModel) model).r1HasGarb) {
                     label += " - G";
                     c = Color.orange;
                 }
@@ -213,16 +275,29 @@ public class FarmEnvironment extends Environment {
             super.drawString(g, x, y, defaultFont, label);
             repaint();
         }
-
-        public void drawGarb(Graphics g, int x, int y) {
-            super.drawObstacle(g, x, y);
-            g.setColor(Color.white);
-            drawString(g, x, y, defaultFont, "G");
+    
+        private void drawField(Graphics g, int x, int y) {
+            g.setColor(Color.green);
+            g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
         }
-
-        private getFieldcolor(double fieldHealth) {
-            
+    
+        private void drawPlanted(Graphics g, int x, int y) {
+            g.setColor(Color.orange);
+            g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
+            drawString(g, x, y, defaultFont, "P");
         }
-
+    
+        private void drawWatered(Graphics g, int x, int y) {
+            g.setColor(Color.blue);
+            g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
+            drawString(g, x, y, defaultFont, "W");
+        }
+    
+        private void drawDead(Graphics g, int x, int y) {
+            g.setColor(Color.red);
+            g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
+            drawString(g, x, y, defaultFont, "D");
+        }
+    
     }
 }

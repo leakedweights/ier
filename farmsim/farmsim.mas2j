@@ -1,6 +1,6 @@
 MAS farmsim {
 
-    environment: env.farm.FarmEnvironment(10)
+    environment: env.farm.FarmEnvironment
 
     agents:
         drone # 3;
