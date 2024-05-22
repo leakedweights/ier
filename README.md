@@ -8,13 +8,13 @@
 
 ### Start project
 ```bash
-cd agrobots
-jason agrobots.mas2j -v
+cd farmsim
+jason farmsim.mas2j -v
 ```
 
 ## Project outline
 
-Agrobots simulates an autonomous agricultural system that is capable of sustaining a farm, involving planting and harvesting specific types of crops, watering fields, and surveying for dead plants.
+`farmsim` simulates an autonomous agricultural system that is capable of sustaining a farm, involving planting and harvesting specific types of crops, watering fields, and surveying for dead plants.
 
 **Types of agents:** survey drones, irrigation robots, and harvesters.
 

@@ -1,0 +1,11 @@
+MAS farmsim {
+
+    environment: env.farm.FarmEnvironment(10)
+
+    agents:
+        drone # 3;
+        harvester # 2;
+        irrigation_robot # 3;
+
+    aslSourcePath: "src/agt";
+}

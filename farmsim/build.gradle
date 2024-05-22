@@ -1,8 +1,8 @@
 /*
-   Project agrobots
+   Project farmsim
 
    Gradle build file for Jason Application
-   May 19, 2024 - 16:21:39
+   May 21, 2024 - 19:11:08
 */
 
 defaultTasks 'run'
@@ -42,16 +42,16 @@ sourceSets {
 task run (type: JavaExec, dependsOn: 'classes') {
     description 'runs the application'
     mainClass = 'jason.infra.local.RunLocalMAS'
-    args = ['agrobots.mas2j']
+    args = ['farmsim.mas2j']
 	// options:
-	//     args = ['agrobots.mas2j', '--debug', '--no-net', '--empty-mas']
-	//     args = ['agrobots.mas2j', '--log-conf', 'l.p'] // to use file l.p to configure logging
+	//     args = ['farmsim.mas2j', '--debug', '--no-net', '--empty-mas']
+	//     args = ['farmsim.mas2j', '--log-conf', 'l.p'] // to use file l.p to configure logging
     classpath sourceSets.main.runtimeClasspath
 }
 
 task runJade (type: JavaExec, dependsOn: 'classes') {
     description 'runs the application with Jade infrastructure'
     mainClass = 'jason.infra.jade.RunJadeMAS'
-    args = [ 'agrobots.mas2j' ]
+    args = [ 'farmsim.mas2j' ]
     classpath sourceSets.main.runtimeClasspath
 }
