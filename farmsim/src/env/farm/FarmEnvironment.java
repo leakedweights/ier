@@ -1,17 +1,22 @@
 package env.farm;
 
-import jason.asSyntax.*;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.logging.Logger;
+
+import jason.asSyntax.Literal;
+import jason.asSyntax.NumberTerm;
+import jason.asSyntax.Structure;
+import jason.asSyntax.Term;
 import jason.environment.Environment;
 import jason.environment.grid.GridWorldModel;
 import jason.environment.grid.GridWorldView;
 import jason.environment.grid.Location;
-
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-
-import java.util.*;
-import java.util.logging.Logger;
 
 public class FarmEnvironment extends Environment {
 
@@ -98,18 +103,21 @@ public class FarmEnvironment extends Environment {
             addPercept(Literal.parseLiteral("pos(drone" + (i + 1) + "," + l.x + "," + l.y + ")"));
         }
     
-        for (int x = 0; x < GRID_SIZE; x++) {
-            for (int y = 0; y < GRID_SIZE; y++) {
+        for (int x = 0; x < GRID_SIZE-1; x++) {
+            for (int y = 0; y < GRID_SIZE-1; y++) {
                 if (model.hasObject(FIELD, x, y)) {
                     if (model.hasObject(PLANTED, x, y)) {
                         addPercept(Literal.parseLiteral("planted(" + x + "," + y + ")"));
                     }
-                    if (model.hasObject(WATERED, x, y)) {
+                    else if (model.hasObject(WATERED, x, y)) {
                         addPercept(Literal.parseLiteral("watered(" + x + "," + y + ")"));
                     }
-                    if (model.hasObject(DEAD, x, y)) {
+                    else if (model.hasObject(DEAD, x, y)) {
                         addPercept(Literal.parseLiteral("dead(" + x + "," + y + ")"));
-                    }
+                    } else {
+                        //System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXX");
+                        addPercept(Literal.parseLiteral("field(" + x + "," + y + ")"));
+                    } //before this one more else if needed for harvesting mature plants
                 }
             }
         }

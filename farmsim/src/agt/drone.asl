@@ -2,7 +2,7 @@
 
 +!start : true <-
     .print("Drone started.");
-    !traverse_route([[10,10], [5, 5], [20, 25]]).
+   // !traverse_route([[10,10], [5, 5], [20, 25]]).
 
 +!traverse_route([]).
 +!traverse_route([[X,Y]|Tail]) <-
