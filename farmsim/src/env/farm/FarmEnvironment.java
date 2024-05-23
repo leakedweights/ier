@@ -14,6 +14,8 @@ import java.util.logging.Logger;
 
 public class FarmEnvironment extends Environment {
 
+    /* constants */
+
     public static final int GRID_SIZE = 25;
     public static final int GARB  = 16;
 
@@ -22,6 +24,12 @@ public class FarmEnvironment extends Environment {
     public static final int WATERED = 128;
     public static final int DEAD = 256;
 
+    private static final int MATURITY_AGE = 30;
+    private static final int WATERING_INTERVAL = 5;
+    private static final double DEATH_PROBABILITY = 0.05;
+    private static final double HEALTH_DECREASE = 0.10;
+
+    /* commands */
 
     public static final Term    ns = Literal.parseLiteral("next(slot)");
     public static final Term    pg = Literal.parseLiteral("pick(garb)");
@@ -46,13 +54,15 @@ public class FarmEnvironment extends Environment {
     @Override
     public boolean executeAction(String ag, Structure action) {
         logger.info(ag + " doing: " + action);
+
+        int agentId = getAgentId(ag);
         try {
             if (action.equals(ns)) {
                 model.nextSlot();
             } else if (action.getFunctor().equals("move_towards")) {
                 int x = (int) ((NumberTerm) action.getTerm(0)).solve();
                 int y = (int) ((NumberTerm) action.getTerm(1)).solve();
-                model.moveTowards(x, y);
+                model.moveTowards(agentId, x, y);
             } else if (action.getFunctor().equals("plant")) {
                 int x = (int) ((NumberTerm) action.getTerm(0)).solve();
                 int y = (int) ((NumberTerm) action.getTerm(1)).solve();
@@ -61,6 +71,10 @@ public class FarmEnvironment extends Environment {
                 int x = (int) ((NumberTerm) action.getTerm(0)).solve();
                 int y = (int) ((NumberTerm) action.getTerm(1)).solve();
                 model.water(x, y);
+            } else if (action.getFunctor().equals("survey")) {
+                int x = (int) ((NumberTerm) action.getTerm(0)).solve();
+                int y = (int) ((NumberTerm) action.getTerm(1)).solve();
+                model.survey(agentId, x, y);
             } else {
                 return false;
             }
@@ -108,16 +122,28 @@ public class FarmEnvironment extends Environment {
         }
     }
 
+    private int getAgentId(String agName) {
+        return Integer.parseInt(agName.replace("agent", "")) - 1;
+    }
+
     class FarmModel extends GridWorldModel {
 
-        public static final int MErr = 2; // max error in pick garb
-        int nerr; // number of tries of pick garb
+        private double[][] plantHealth;
+        private int[][] plantAge;
+        private boolean[][] plantWatered;
+        private int[][] lastWatered;
+
         boolean r1HasGarb = false; // whether r1 is carrying garbage or not
 
         Random random = new Random(System.currentTimeMillis());
 
         private FarmModel() {
             super(GRID_SIZE, GRID_SIZE, 2);
+
+            plantHealth = new double[GRID_SIZE][GRID_SIZE];
+            plantAge = new int[GRID_SIZE][GRID_SIZE];
+            plantWatered = new boolean[GRID_SIZE][GRID_SIZE];
+            lastWatered = new int[GRID_SIZE][GRID_SIZE];
 
             try {
                 setAgPos(0, 0, 0);
@@ -130,22 +156,12 @@ public class FarmEnvironment extends Environment {
 
             for (int x = 0; x < GRID_SIZE; x++) {
                 for (int y = 0; y < GRID_SIZE; y++) {
-                    if (x % 2 == 0 && y % 2 == 0) {
+                    if (x % 2 != 0 && y % 2 != 0) {
                         add(FIELD, x, y);
-                        add(PLANTED, x, y);
-                    } else {
-                        add(FIELD, x, y);
-                    }
-                    
+                    } 
                 }
             }
 
-            // initial location of garbage
-            add(GARB, 3, 0);
-            add(GARB, GRID_SIZE-1, 0);
-            add(GARB, 1, 2);
-            add(GARB, 0, GRID_SIZE-2);
-            add(GARB, GRID_SIZE-1, GRID_SIZE-1);
         }
 
         void plant(int x, int y) {
@@ -159,11 +175,15 @@ public class FarmEnvironment extends Environment {
                 add(WATERED, x, y);
             }
         }
+
+        void survey(int agentId, int x, int y) {
+
+        }
     
         void simulatePlantDeath() {
             for (int x = 0; x < GRID_SIZE; x++) {
                 for (int y = 0; y < GRID_SIZE; y++) {
-                    if (hasObject(WATERED, x, y) && random.nextDouble() < 0.05) {
+                    if (hasObject(WATERED, x, y) && random.nextDouble() < DEATH_PROBABILITY) {
                         remove(WATERED, x, y);
                         add(DEAD, x, y);
                     }
@@ -186,32 +206,24 @@ public class FarmEnvironment extends Environment {
             setAgPos(1, getAgPos(1)); // just to draw it in the view
         }
 
-        void moveTowards(int x, int y) throws Exception {
-            Location r1 = getAgPos(0);
-            if (r1.x < x)
-                r1.x++;
-            else if (r1.x > x)
-                r1.x--;
-            if (r1.y < y)
-                r1.y++;
-            else if (r1.y > y)
-                r1.y--;
-            setAgPos(0, r1);
-            setAgPos(1, getAgPos(1)); // just to draw it in the view
+        void moveTowards(int agentId, int x, int y) throws Exception {
+            Location loc = getAgPos(0);
+            if (loc.x < x)
+                loc.x++;
+            else if (loc.x > x)
+                loc.x--;
+            if (loc.y < y)
+                loc.y++;
+            else if (loc.y > y)
+                loc.y--;
+            setAgPos(agentId, loc);
+            // for each other agent: set their own agPos
         }
 
         void pickGarb() {
-            // r1 location has garbage
             if (model.hasObject(GARB, getAgPos(0))) {
-                // sometimes the "picking" action doesn't work
-                // but never more than MErr times
-                if (random.nextBoolean() || nerr == MErr) {
-                    remove(GARB, getAgPos(0));
-                    nerr = 0;
-                    r1HasGarb = true;
-                } else {
-                    nerr++;
-                }
+                remove(GARB, getAgPos(0));
+                r1HasGarb = true;
             }
         }
         void dropGarb() {
@@ -273,7 +285,7 @@ public class FarmEnvironment extends Environment {
                 g.setColor(Color.white);
             }
             super.drawString(g, x, y, defaultFont, label);
-            repaint();
+            // repaint();
         }
     
         private void drawField(Graphics g, int x, int y) {
