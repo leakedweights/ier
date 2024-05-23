@@ -4,8 +4,8 @@ MAS farmsim {
 
     agents:
         drone # 3;
-        harvester # 2;
-        irrigation_robot # 3;
+        harvester;
+        irrigation_robot;
 
     aslSourcePath: "src/agt";
 }

@@ -9,7 +9,8 @@ import jason.environment.grid.Location;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
-import java.util.Random;
+
+import java.util.*;
 import java.util.logging.Logger;
 
 public class FarmEnvironment extends Environment {
@@ -29,19 +30,18 @@ public class FarmEnvironment extends Environment {
     private static final double DEATH_PROBABILITY = 0.05;
     private static final double HEALTH_DECREASE = 0.10;
 
+    private static final int NUM_DRONES = 3;
+
     /* commands */
 
     public static final Term    ns = Literal.parseLiteral("next(slot)");
-    public static final Term    pg = Literal.parseLiteral("pick(garb)");
-    public static final Term    dg = Literal.parseLiteral("drop(garb)");
-    public static final Term    bg = Literal.parseLiteral("burn(garb)");
-    public static final Literal g1 = Literal.parseLiteral("garbage(r1)");
-    public static final Literal g2 = Literal.parseLiteral("garbage(r2)");
 
     static Logger logger = Logger.getLogger(FarmEnvironment.class.getName());
 
     private FarmModel model;
     private FarmView  view;
+
+    private Map<Integer, List<Location>> routes = new HashMap<>();
 
     @Override
     public void init(String[] args) {
@@ -57,9 +57,7 @@ public class FarmEnvironment extends Environment {
 
         int agentId = getAgentId(ag);
         try {
-            if (action.equals(ns)) {
-                model.nextSlot();
-            } else if (action.getFunctor().equals("move_towards")) {
+            if (action.getFunctor().equals("move_towards")) {
                 int x = (int) ((NumberTerm) action.getTerm(0)).solve();
                 int y = (int) ((NumberTerm) action.getTerm(1)).solve();
                 model.moveTowards(agentId, x, y);
@@ -92,18 +90,13 @@ public class FarmEnvironment extends Environment {
         return true;
     }
 
-
     void updatePercepts() {
         clearPercepts();
     
-        Location r1Loc = model.getAgPos(0);
-        Location r2Loc = model.getAgPos(1);
-    
-        Literal pos1 = Literal.parseLiteral("pos(r1," + r1Loc.x + "," + r1Loc.y + ")");
-        Literal pos2 = Literal.parseLiteral("pos(r2," + r2Loc.x + "," + r2Loc.y + ")");
-    
-        addPercept(pos1);
-        addPercept(pos2);
+        for (int i = 0; i < NUM_DRONES; i++) {
+            Location l = model.getAgPos(i);
+            addPercept(Literal.parseLiteral("pos(drone" + (i + 1) + "," + l.x + "," + l.y + ")"));
+        }
     
         for (int x = 0; x < GRID_SIZE; x++) {
             for (int y = 0; y < GRID_SIZE; y++) {
@@ -123,7 +116,23 @@ public class FarmEnvironment extends Environment {
     }
 
     private int getAgentId(String agName) {
-        return Integer.parseInt(agName.replace("agent", "")) - 1;
+        try {
+            if (agName.startsWith("drone")) {
+                String idStr = agName.replace("drone", "");
+                int id = Integer.parseInt(idStr);
+                return id - 1;
+            } else if (agName.equals("irrigation_robot")) {
+                return 3;
+            } else if (agName.equals("harvester")) {
+                return 4;
+            } else {
+                throw new IllegalArgumentException("Unknown agent name: " + agName);
+            }
+        } catch (NumberFormatException e) {
+            System.err.println("Failed to parse agent ID from name: " + agName);
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     class FarmModel extends GridWorldModel {
@@ -133,12 +142,10 @@ public class FarmEnvironment extends Environment {
         private boolean[][] plantWatered;
         private int[][] lastWatered;
 
-        boolean r1HasGarb = false; // whether r1 is carrying garbage or not
-
         Random random = new Random(System.currentTimeMillis());
 
         private FarmModel() {
-            super(GRID_SIZE, GRID_SIZE, 2);
+            super(GRID_SIZE, GRID_SIZE, 5);
 
             plantHealth = new double[GRID_SIZE][GRID_SIZE];
             plantAge = new int[GRID_SIZE][GRID_SIZE];
@@ -146,14 +153,17 @@ public class FarmEnvironment extends Environment {
             lastWatered = new int[GRID_SIZE][GRID_SIZE];
 
             try {
-                setAgPos(0, 0, 0);
-
-                Location r2Loc = new Location(GRID_SIZE/2, GRID_SIZE/2);
-                setAgPos(1, r2Loc);
+                setAgPos(0, 0, 0); // Drone 1 at (0, 0)
+                setAgPos(1, GRID_SIZE - 1, 0); // Drone 2 at (1, 0)
+                setAgPos(2, 0, GRID_SIZE - 1); // Drone 3 at (2, 0)
+                
+                setAgPos(3, GRID_SIZE / 2, GRID_SIZE / 2); // Irrigation robot at the center
+                setAgPos(4, GRID_SIZE - 1, GRID_SIZE - 1); // Harvester at the bottom right corner
+    
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
+    
             for (int x = 0; x < GRID_SIZE; x++) {
                 for (int y = 0; y < GRID_SIZE; y++) {
                     if (x % 2 != 0 && y % 2 != 0) {
@@ -161,7 +171,6 @@ public class FarmEnvironment extends Environment {
                     } 
                 }
             }
-
         }
 
         void plant(int x, int y) {
@@ -177,7 +186,7 @@ public class FarmEnvironment extends Environment {
         }
 
         void survey(int agentId, int x, int y) {
-
+            // Add survey logic here
         }
     
         void simulatePlantDeath() {
@@ -191,23 +200,8 @@ public class FarmEnvironment extends Environment {
             }
         }
 
-        void nextSlot() throws Exception {
-            Location r1 = getAgPos(0);
-            r1.x++;
-            if (r1.x == getWidth()) {
-                r1.x = 0;
-                r1.y++;
-            }
-            // finished searching the whole grid
-            if (r1.y == getHeight()) {
-                return;
-            }
-            setAgPos(0, r1);
-            setAgPos(1, getAgPos(1)); // just to draw it in the view
-        }
-
         void moveTowards(int agentId, int x, int y) throws Exception {
-            Location loc = getAgPos(0);
+            Location loc = getAgPos(agentId);
             if (loc.x < x)
                 loc.x++;
             else if (loc.x > x)
@@ -217,26 +211,6 @@ public class FarmEnvironment extends Environment {
             else if (loc.y > y)
                 loc.y--;
             setAgPos(agentId, loc);
-            // for each other agent: set their own agPos
-        }
-
-        void pickGarb() {
-            if (model.hasObject(GARB, getAgPos(0))) {
-                remove(GARB, getAgPos(0));
-                r1HasGarb = true;
-            }
-        }
-        void dropGarb() {
-            if (r1HasGarb) {
-                r1HasGarb = false;
-                add(GARB, getAgPos(0));
-            }
-        }
-        void burnGarb() {
-            // r2 location has garbage
-            if (model.hasObject(GARB, getAgPos(1))) {
-                remove(GARB, getAgPos(1));
-            }
         }
     }
 
@@ -269,23 +243,25 @@ public class FarmEnvironment extends Environment {
     
         @Override
         public void drawAgent(Graphics g, int x, int y, Color c, int id) {
-            String label = "R" + (id + 1);
-            c = Color.blue;
-            if (id == 0) {
-                c = Color.yellow;
-                if (((FarmModel) model).r1HasGarb) {
-                    label += " - G";
-                    c = Color.orange;
-                }
-            }
-            super.drawAgent(g, x, y, c, -1);
-            if (id == 0) {
-                g.setColor(Color.black);
+            String label;
+            if (id < 3) {
+                label = "D" + (id + 1);
+                c = Color.orange;
+            } else if (id == 3) {
+                label = "I";
+                c = Color.blue;
+            } else if (id == 4) {
+                label = "H";
+                c = Color.magenta;
             } else {
-                g.setColor(Color.white);
+                label = "A" + (id + 1);
+                c = Color.gray;
             }
+    
+            super.drawAgent(g, x, y, c, -1);
+            g.setColor(Color.black);
             super.drawString(g, x, y, defaultFont, label);
-            // repaint();
+            repaint();
         }
     
         private void drawField(Graphics g, int x, int y) {
@@ -310,6 +286,5 @@ public class FarmEnvironment extends Environment {
             g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
             drawString(g, x, y, defaultFont, "D");
         }
-    
     }
 }
