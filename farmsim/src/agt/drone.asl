@@ -1,18 +1,18 @@
 !start.
 
-at(P) :- pos(P,X,Y) & pos(Name, X, Y).
-
 +!start : true <-
     .print("Drone started.");
-    !model_loop.
+    !traverse_route([[10,10], [5, 5], [20, 25]]).
 
-+!model_loop : true <-
-    if(not(empty(Routes))) {
-        Position = [next(X, Y), Rest];
-        !go_to(X, Y);
-    }.
++!traverse_route([]).
++!traverse_route([[X,Y]|Tail]) <-
+    !go_to(X,Y);
+    !traverse_route(Tail).
 
-+!go_to(X, Y): true <-
-    if(not(at(X,Y)) {
-        move_towards(X,Y);
++!go_to(X, Y) : true <-
+    if(not(pos(Name, X, Y))) {
+        move_towards(X, Y);
+        !go_to(X,Y);
+    } else {
+        .print("Arrived at (", X, ",", Y, ")");
     }.

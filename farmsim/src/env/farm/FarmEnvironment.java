@@ -74,7 +74,7 @@ public class FarmEnvironment extends Environment {
                 int y = (int) ((NumberTerm) action.getTerm(1)).solve();
                 model.survey(agentId, x, y);
             } else {
-                return false;
+                return super.executeAction(ag, action);
             }
         } catch (Exception e) {
             e.printStackTrace();
