@@ -31,6 +31,8 @@ public class FarmEnvironment extends Environment {
     private static final double HEALTH_DECREASE = 0.10;
 
     private static final int NUM_DRONES = 3;
+    private static final int HARVESTER_ID = 3;
+    private static final int IRRIGATION_ROBOT_ID = 4;
 
     /* commands */
 
@@ -93,11 +95,24 @@ public class FarmEnvironment extends Environment {
     void updatePercepts() {
         clearPercepts();
     
-        for (int i = 0; i < NUM_DRONES; i++) {
-            Location l = model.getAgPos(i);
-            addPercept(Literal.parseLiteral("pos(drone" + (i + 1) + "," + l.x + "," + l.y + ")"));
-        }
+        Location harvesterLocation = model.getAgPos(HARVESTER_ID);
+        addPercept(Literal.parseLiteral("pos(harvester" + "," + harvesterLocation.x + "," + harvesterLocation.y + ")"));
+        
+        Location irrigationRobotLocation = model.getAgPos(IRRIGATION_ROBOT_ID);
+        addPercept(Literal.parseLiteral("pos(harvester" + "," + irrigationRobotLocation.x + "," + irrigationRobotLocation.y + ")"));
     
+
+        for (int i = 0; i < NUM_DRONES; i++) {
+            int[][] destinations = { {12, 0}, {20, 20}, {0, 15} };
+            int[][] secondDestinations = { {24, 5}, {12, 0}, {21, 20} };
+        
+            Location droneLocation = model.getAgPos(i);
+            addPercept(Literal.parseLiteral("pos(drone" + (i + 1) + "," + droneLocation.x + "," + droneLocation.y + ")"));
+            addPercept(Literal.parseLiteral("destination(drone" + (i + 1) + ",[" + destinations[i][0] + "," + destinations[i][1] + "])"));
+            addPercept(Literal.parseLiteral("destination(drone" + (i + 1) + ",[" + secondDestinations[i][0] + "," + secondDestinations[i][1] + "])"));
+
+        }
+
         for (int x = 0; x < GRID_SIZE; x++) {
             for (int y = 0; y < GRID_SIZE; y++) {
                 if (model.hasObject(FIELD, x, y)) {
