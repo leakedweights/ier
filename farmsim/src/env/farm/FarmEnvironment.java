@@ -75,7 +75,28 @@ public class FarmEnvironment extends Environment {
                 int x = (int) ((NumberTerm) action.getTerm(0)).solve();
                 int y = (int) ((NumberTerm) action.getTerm(1)).solve();
                 model.survey(agentId, x, y);
-            } else {
+            } 
+            
+            //sending heath and state
+            else if (action.getFunctor().equals("get_state")) {
+                int x = (int) ((NumberTerm) action.getTerm(0)).solve();
+                int y = (int) ((NumberTerm) action.getTerm(1)).solve();
+                String state = model.getState(x, y);
+                Literal response = Literal.parseLiteral("field_state(" + x + "," + y + ",'" + state + "')");
+                addPercept(ag, response);
+            } else if (action.getFunctor().equals("get_health")) {
+                int x = (int) ((NumberTerm) action.getTerm(0)).solve();
+                int y = (int) ((NumberTerm) action.getTerm(1)).solve();
+                double health = model.getHealth(x, y);
+                Literal response = Literal.parseLiteral("field_health(" + x + "," + y + "," + health + ")");
+                addPercept(ag, response);
+            }
+            
+            
+            
+            
+            
+            else {
                 return super.executeAction(ag, action);
             }
         } catch (Exception e) {
@@ -216,22 +237,23 @@ public class FarmEnvironment extends Environment {
             setAgPos(agentId, loc);
         }
 
-        //get pland health and state
+        //get plant/field health
         double getHealth(int x, int y)
         {
             return plantHealth[x][y];
         }
 
-        int getState(int x, int y) {
-            if (model.hasObject(FarmEnvironment.PLANTED, x, y)) {
-                return FarmEnvironment.PLANTED;
-            } else if (model.hasObject(FarmEnvironment.WATERED, x, y)) {
-                return FarmEnvironment.WATERED;
-            } else if (model.hasObject(FarmEnvironment.DEAD, x, y)) {
-                return FarmEnvironment.DEAD;
+        //get plant/field health
+        public String getState(int x, int y) {
+            // Replace with your logic to determine the field state
+            if (model.hasObject(PLANTED, x, y)) {
+                return "PLANTED";
+            } else if (model.hasObject(WATERED, x, y)) {
+                return "WATERED";
+            } else if (model.hasObject(DEAD, x, y)) {
+                return "DEAD";
             } else {
-                // If none --> default state
-                return -1;
+                return "NULL";
             }
         }
     }

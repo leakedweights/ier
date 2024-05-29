@@ -48,4 +48,6 @@
 //sending data to harvester
 +!survey_completed([X, Y]) : true <-
     .print("Survey completed at: (", X, ",", Y, ")");
-    .send(harvester, tell, fieldState([X, Y, "FIELD", 20])).
+    State = getState(X, Y);
+    Health = getHealth(X, Y);
+    .send(harvester, tell, fieldState([X, Y, State, Health])).
