@@ -4,8 +4,11 @@ import jason.asSemantics.*;
 import jason.asSyntax.*;
 
 import java.util.*;
+import java.util.logging.Logger;
 
 public class SolveGreedyTSP extends DefaultInternalAction {
+
+    static Logger logger = Logger.getLogger(SolveGreedyTSP.class.getName());
 
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
@@ -28,8 +31,21 @@ public class SolveGreedyTSP extends DefaultInternalAction {
             points.add(coordinates);
         }
 
+        // Ensure the startPoint is in the list and find its index
+        int startIndex = -1;
+        for (int i = 0; i < points.size(); i++) {
+            if (Arrays.equals(points.get(i), startPoint)) {
+                startIndex = i;
+                break;
+            }
+        }
+        if (startIndex == -1) {
+            points.add(startPoint);
+            startIndex = points.size() - 1;
+        }
+
         // Apply the greedy TSP algorithm
-        List<int[]> route = solveGreedyTSP(points, startPoint);
+        List<int[]> route = solveGreedyTSP(points, startIndex);
         double cost = calculateRouteCost(route);
 
         // Convert the route and cost to Jason terms
@@ -47,32 +63,37 @@ public class SolveGreedyTSP extends DefaultInternalAction {
         return un.unifies(plannedRoute, args[2]) && un.unifies(plannedCost, args[3]);
     }
 
-    private List<int[]> solveGreedyTSP(List<int[]> points, int[] startPoint) {
+    private List<int[]> solveGreedyTSP(List<int[]> points, int startIndex) {
         List<int[]> route = new ArrayList<>();
-        Set<int[]> visited = new HashSet<>();
-        int[] currentPoint = startPoint;
+        boolean[] visited = new boolean[points.size()];
+        int currentIndex = startIndex;
 
-        route.add(currentPoint);
-        visited.add(currentPoint);
+        route.add(points.get(currentIndex));
+        visited[currentIndex] = true;
 
-        while (visited.size() < points.size()) {
-            int[] nextPoint = null;
+        while (route.size() < points.size()) {
+            int[] currentPoint = route.get(route.size() - 1);
             double minDistance = Double.MAX_VALUE;
+            int nextIndex = -1;
 
-            for (int[] point : points) {
-                if (!visited.contains(point)) {
-                    double distance = calculateDistance(currentPoint, point);
+            for (int i = 0; i < points.size(); i++) {
+                if (!visited[i]) {
+                    double distance = calculateDistance(currentPoint, points.get(i));
                     if (distance < minDistance) {
                         minDistance = distance;
-                        nextPoint = point;
+                        nextIndex = i;
                     }
                 }
             }
 
-            route.add(nextPoint);
-            visited.add(nextPoint);
-            currentPoint = nextPoint;
+            if (nextIndex != -1) {
+                route.add(points.get(nextIndex));
+                visited[nextIndex] = true;
+            }
         }
+
+        // Optionally, return to the starting point to complete the circuit
+        // route.add(points.get(startIndex));
 
         return route;
     }
@@ -88,6 +109,8 @@ public class SolveGreedyTSP extends DefaultInternalAction {
         for (int i = 0; i < route.size() - 1; i++) {
             cost += calculateDistance(route.get(i), route.get(i + 1));
         }
+        // Optionally, add the cost of returning to the start point to complete the circuit
+        // cost += calculateDistance(route.get(route.size() - 1), route.get(0));
         return cost;
     }
 }
