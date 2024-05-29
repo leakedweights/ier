@@ -189,7 +189,7 @@ public class FarmEnvironment extends Environment {
         }
 
         void survey(int agentId, int x, int y) {
-            add(DEAD, x, y);
+            add(WATERED, x, y);
         }
     
         void simulatePlantDeath() {
@@ -214,6 +214,25 @@ public class FarmEnvironment extends Environment {
             else if (loc.y > y)
                 loc.y--;
             setAgPos(agentId, loc);
+        }
+
+        //get pland health and state
+        double getHealth(int x, int y)
+        {
+            return plantHealth[x][y];
+        }
+
+        int getState(int x, int y) {
+            if (model.hasObject(FarmEnvironment.PLANTED, x, y)) {
+                return FarmEnvironment.PLANTED;
+            } else if (model.hasObject(FarmEnvironment.WATERED, x, y)) {
+                return FarmEnvironment.WATERED;
+            } else if (model.hasObject(FarmEnvironment.DEAD, x, y)) {
+                return FarmEnvironment.DEAD;
+            } else {
+                // If none --> default state
+                return -1;
+            }
         }
     }
 

@@ -42,6 +42,10 @@
         !go_to(X,Y);
     } else {
       .print("Surveying: (", X, ",", Y, ")");
-      survey(X, Y);
-      +survey_completed([X, Y]);
+      !survey_completed([X, Y]);
     }.
+
+//sending data to harvester
++!survey_completed([X, Y]) : true <-
+    .print("Survey completed at: (", X, ",", Y, ")");
+    .send(harvester, tell, fieldState([X, Y, "FIELD", 20])).
