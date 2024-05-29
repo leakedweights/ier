@@ -92,9 +92,6 @@ public class SolveGreedyTSP extends DefaultInternalAction {
             }
         }
 
-        // Optionally, return to the starting point to complete the circuit
-        // route.add(points.get(startIndex));
-
         return route;
     }
 

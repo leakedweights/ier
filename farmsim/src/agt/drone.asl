@@ -32,9 +32,7 @@
 +!traverse_route([]) <-
     .print("Completed the entire route.").
 +!traverse_route([[X,Y]|Tail]) <-
-    .print("Going to next node: (", X, ", ", Y, ")");
     !go_to(X,Y);
-    .print("Reached node: (", X, ", ", Y, ")");
     !traverse_route(Tail).
 
 +!go_to(X, Y) : true <-
@@ -43,6 +41,7 @@
         move_towards(X, Y);
         !go_to(X,Y);
     } else {
-      .print("Arrived at: (", X, ",", Y, ")");
-      survey(X, Y);  
+      .print("Surveying: (", X, ",", Y, ")");
+      survey(X, Y);
+      +survey_completed([X, Y]);
     }.

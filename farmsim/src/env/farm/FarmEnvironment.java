@@ -102,29 +102,15 @@ public class FarmEnvironment extends Environment {
         addPercept(Literal.parseLiteral("pos(irrigation_robot" + "," + irrigationRobotLocation.x + "," + irrigationRobotLocation.y + ")"));
     
 
-        for (int i = 0; i < NUM_DRONES; i++) {
-            int[][] destinations = { {12, 0}, {20, 20}, {0, 15} };
-            int[][] secondDestinations = { {24, 5}, {12, 0}, {21, 20} };
-        
+        for (int i = 0; i < NUM_DRONES; i++) {       
             Location droneLocation = model.getAgPos(i);
             addPercept(Literal.parseLiteral("pos(drone" + (i + 1) + "," + droneLocation.x + "," + droneLocation.y + ")"));
-            addPercept(Literal.parseLiteral("destination(drone" + (i + 1) + ",[" + destinations[i][0] + "," + destinations[i][1] + "])"));
-            addPercept(Literal.parseLiteral("destination(drone" + (i + 1) + ",[" + secondDestinations[i][0] + "," + secondDestinations[i][1] + "])"));
-
         }
 
         for (int x = 0; x < GRID_SIZE; x++) {
             for (int y = 0; y < GRID_SIZE; y++) {
                 if (model.hasObject(FIELD, x, y)) {
-                    if (model.hasObject(PLANTED, x, y)) {
-                        addPercept(Literal.parseLiteral("planted(" + x + "," + y + ")"));
-                    }
-                    if (model.hasObject(WATERED, x, y)) {
-                        addPercept(Literal.parseLiteral("watered(" + x + "," + y + ")"));
-                    }
-                    if (model.hasObject(DEAD, x, y)) {
-                        addPercept(Literal.parseLiteral("dead(" + x + "," + y + ")"));
-                    }
+                    addPercept(Literal.parseLiteral("field(" + x + "," + y + ")"));
                 }
             }
         }
@@ -171,8 +157,8 @@ public class FarmEnvironment extends Environment {
 
             try {
                 setAgPos(0, 0, 0); // Drone 1 at (0, 0)
-                setAgPos(1, GRID_SIZE - 1, 0); // Drone 2 at (1, 0)
-                setAgPos(2, 0, GRID_SIZE - 1); // Drone 3 at (2, 0)
+                setAgPos(1, GRID_SIZE - 1, 0); // Drone 2 at (25, 0)
+                setAgPos(2, 0, GRID_SIZE - 1); // Drone 3 at (0, 25)
                 
                 setAgPos(3, GRID_SIZE / 2, GRID_SIZE / 2); // Irrigation robot at the center
                 setAgPos(4, GRID_SIZE - 1, GRID_SIZE - 1); // Harvester at the bottom right corner
@@ -203,7 +189,7 @@ public class FarmEnvironment extends Environment {
         }
 
         void survey(int agentId, int x, int y) {
-            // Add survey logic here
+            add(DEAD, x, y);
         }
     
         void simulatePlantDeath() {
