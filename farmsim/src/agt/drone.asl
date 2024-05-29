@@ -2,18 +2,11 @@
 
 +!start : true <-
     .print("Drone started.");
-    !plan_and_traverse.
-
-
-+!plan_and_traverse : true <-
     .my_name(MyName);
-    for (destination(AgentName, Destination)) {
-        if(AgentName == MyName) {
-            Destination = [X, Y];
-            !go_to(X, Y);
-            -destination(MyName, Destination);
-        };
-    }.
+    ?pos(MyName, X, Y);
+    functions.SolveGreedyTSP([[10,10], [20,20]], [X, Y], PlannedRoute, PlannedCost);
+    .print("Route: ", PlannedRoute, ", Cost: ", PlannedCost).
+
 
 +!go_to(X, Y) : true <-
     .my_name(Name);

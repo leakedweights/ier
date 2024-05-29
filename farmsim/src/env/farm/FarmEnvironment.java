@@ -99,7 +99,7 @@ public class FarmEnvironment extends Environment {
         addPercept(Literal.parseLiteral("pos(harvester" + "," + harvesterLocation.x + "," + harvesterLocation.y + ")"));
         
         Location irrigationRobotLocation = model.getAgPos(IRRIGATION_ROBOT_ID);
-        addPercept(Literal.parseLiteral("pos(harvester" + "," + irrigationRobotLocation.x + "," + irrigationRobotLocation.y + ")"));
+        addPercept(Literal.parseLiteral("pos(irrigation_robot" + "," + irrigationRobotLocation.x + "," + irrigationRobotLocation.y + ")"));
     
 
         for (int i = 0; i < NUM_DRONES; i++) {
