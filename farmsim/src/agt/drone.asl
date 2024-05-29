@@ -1,16 +1,36 @@
+// initialization
+
 !start.
 
 +!start : true <-
     .print("Drone started.");
     .my_name(MyName);
-    ?pos(MyName, X, Y);
-    functions.SolveGreedyTSP([[10,10], [20,20], [20, 0], [0, 0], [15, 15]], [X, Y], PlannedRoute, PlannedCost);
-    .print("Route: ", PlannedRoute, ", Cost: ", PlannedCost);
-    !traverse_route(PlannedRoute).
+    +route(MyName, []).
+
+// auction (sealed-bid)
+
++bid([X, Y])[source(S)] : true <-
+    .my_name(MyName);
+    ?pos(MyName, PosX, PosY);
+    ?route(MyName, Route);
+    .concat(Route, [[X, Y]], NewRoute);
+    functions.SolveGreedyTSP(NewRoute, [PosX, PosY], _, Cost);
+    .send(auctioneer, tell, bid([X, Y], Cost)).
+
++win([X, Y])[source(auctioneer)] : true <-
+    .my_name(MyName);
+    ?pos(MyName, PosX, PosY);
+    ?route(MyName, Route);
+    .concat(Route, [[X, Y]], NewRoute);
+    functions.SolveGreedyTSP(NewRoute, [PosX, PosY], OptimizedRoute, _);
+    -route(MyName, Route);
+    +route(MyName, OptimizedRoute);
+    !traverse_route(OptimizedRoute).
+
+// movement
 
 +!traverse_route([]) <-
     .print("Completed the entire route.").
-
 +!traverse_route([[X,Y]|Tail]) <-
     .print("Going to next node: (", X, ", ", Y, ")");
     !go_to(X,Y);

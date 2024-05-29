@@ -33,6 +33,7 @@ public class FarmEnvironment extends Environment {
     private static final int NUM_DRONES = 3;
     private static final int HARVESTER_ID = 3;
     private static final int IRRIGATION_ROBOT_ID = 4;
+    private static final int AUCTIONEER_ID = 5;
 
     /* commands */
 
@@ -55,8 +56,7 @@ public class FarmEnvironment extends Environment {
 
     @Override
     public boolean executeAction(String ag, Structure action) {
-        logger.info(ag + " doing: " + action);
-
+        
         int agentId = getAgentId(ag);
         try {
             if (action.getFunctor().equals("move_towards")) {
@@ -140,6 +140,8 @@ public class FarmEnvironment extends Environment {
                 return 3;
             } else if (agName.equals("harvester")) {
                 return 4;
+            } else if (agName.equals("auctioneer")) {
+                return 5;
             } else {
                 throw new IllegalArgumentException("Unknown agent name: " + agName);
             }
@@ -160,7 +162,7 @@ public class FarmEnvironment extends Environment {
         Random random = new Random(System.currentTimeMillis());
 
         private FarmModel() {
-            super(GRID_SIZE, GRID_SIZE, 5);
+            super(GRID_SIZE, GRID_SIZE, 6);
 
             plantHealth = new double[GRID_SIZE][GRID_SIZE];
             plantAge = new int[GRID_SIZE][GRID_SIZE];

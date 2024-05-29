@@ -2,30 +2,41 @@
 
 +!start_auction : true <-
     .print("Starting auction for fields.");
-    !announce_auction.
+    .all_names(Agents);
 
-+!announce_auction : true <-
-    .print("Announcing auction.");
-    .broadcast(announce_auction(Field)).
+    for(.member(Agent, Agents)) {
+        if(.substring("drone", Agent)) {
+            .send(Agent, tell, bid([5, 5]));
+            +pending_bid(Agent);
+        };
+    }.
 
-+bid(Drone, Bid) : true <-
-    .print("Received bid from ", Drone, " with amount ", Bid);
-    .insert(bid(Drone, Bid));
-    !evaluate_bids.
++bid([X, Y], Cost)[source(Agent)] : true <-
+    .print("Received bid from ", Agent, ": Cost=", Cost);
 
-+!evaluate_bids : not(is_auction_over) <-
-    .wait(500); 
-    !evaluate_bids.
+    +agent_bid(Agent, Cost);
+    -pending_bid(Agent);
 
-+!evaluate_bids : is_auction_over <-
-    .print("Evaluating bids.");
-    bids(Bids);
-    .findall(X, bid(_, X), Bids),
-    .max_list(Bids, MaxBid),
-    .member(bid(WinningDrone, MaxBid), Bids),
-    .print("Winning drone is ", WinningDrone, " with bid ", MaxBid);
-    .broadcast(announce_winner(WinningDrone)).
+    .findall(PendingAgent, pending_bid(PendingAgent), PendingBids);
 
-+announce_winner(WinningDrone) : true <-
-    .print("Announcing winner: ", WinningDrone);
-    .send(WinningDrone, task(Field)).
+    if(.length(PendingBids) == 0) {
+        !evaluate_bids;
+    }.
+
++!evaluate_bids : true <-
+    .findall([Agent, Cost], agent_bid(Agent, Cost), Bids);
+    !find_lowest_bid(Bids, none, 9999).
+
++!find_lowest_bid([], Winner, LowestCost) : true <-
+    .print("Lowest bid from ", Winner, ": Cost=", LowestCost);
+    .send(Winner, tell, win([5, 5])).
+
++!find_lowest_bid([[Agent, Bid] | Rest], CurrentWinner, CurrentLowestCost) : true <-
+    if (Bid < CurrentLowestCost) {
+        NewWinner = Agent;
+        NewLowestCost = Bid;
+    } else {
+        NewWinner = CurrentWinner;
+        NewLowestCost = CurrentLowestCost;
+    };
+    !find_lowest_bid(Rest, NewWinner, NewLowestCost).
