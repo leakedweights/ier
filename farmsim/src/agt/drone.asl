@@ -57,6 +57,19 @@
         -busy(Name);
     }.
 
+
++plant_status(X, Y, PlantState, PlantHealth) : true <-
+    .print("Status of ", [X, Y], ": ", PlantState, ", Health: ", PlantHealth);
+
+    if(PlantState == "HARVESTABLE" | PlantState == "EMPTY") {
+        .send(harvester, tell, plant_status(X, Y, PlantState));
+    };
+
+    if(not(PlantState == "WATERED") | not(PlantState == "EMPTY")) {
+        .send(irrigation_robot, tell, plant_status(X, Y, PlantState, PlantHealth));
+    }.
+    
+
 +!go_to(X, Y) : true <-
     .my_name(Name);
     if(not(pos(Name, X, Y))) {

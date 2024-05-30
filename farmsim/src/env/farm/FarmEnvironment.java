@@ -24,6 +24,7 @@ public class FarmEnvironment extends Environment {
     public static final int PLANTED = 64;
     public static final int WATERED = 128;
     public static final int DEAD = 256;
+    public static final int HARVESTABLE = 512;
 
     private static final int MATURITY_AGE = 30;
     private static final int WATERING_INTERVAL = 5;
@@ -65,6 +66,10 @@ public class FarmEnvironment extends Environment {
                 int x = (int) ((NumberTerm) action.getTerm(0)).solve();
                 int y = (int) ((NumberTerm) action.getTerm(1)).solve();
                 model.plant(x, y);
+            } else if (action.getFunctor().equals("harvest")) {
+                int x = (int) ((NumberTerm) action.getTerm(0)).solve();
+                int y = (int) ((NumberTerm) action.getTerm(1)).solve();
+                model.harvest(x, y);
             } else if (action.getFunctor().equals("water")) {
                 int x = (int) ((NumberTerm) action.getTerm(0)).solve();
                 int y = (int) ((NumberTerm) action.getTerm(1)).solve();
@@ -72,7 +77,7 @@ public class FarmEnvironment extends Environment {
             } else if (action.getFunctor().equals("survey")) {
                 int x = (int) ((NumberTerm) action.getTerm(0)).solve();
                 int y = (int) ((NumberTerm) action.getTerm(1)).solve();
-                model.survey(agentId, x, y);
+                model.survey(ag, x, y);
             } else {
                 return super.executeAction(ag, action);
             }
@@ -179,6 +184,16 @@ public class FarmEnvironment extends Environment {
                 add(PLANTED, x, y);
             }
         }
+
+        void harvest(int x, int y) {
+            if (hasObject(FIELD, x, y)) {
+                remove(PLANTED, x, y);
+                if (hasObject(WATERED, x, y)) {
+                    remove(WATERED, x, y);
+                }
+                logger.info("Harvested: (" + x + "," + y + ")");
+            }
+        }
     
         void water(int x, int y) {
             if (hasObject(PLANTED, x, y)) {
@@ -186,8 +201,24 @@ public class FarmEnvironment extends Environment {
             }
         }
 
-        void survey(int agentId, int x, int y) {
-            add(DEAD, x, y);
+        void survey(String agentName, int x, int y) {
+            String fieldState;
+            double fieldHealth = plantHealth[x][y];
+
+            if (model.hasObject(PLANTED, x, y)) {
+                fieldState = "PLANTED";
+            } else if (model.hasObject(WATERED, x, y)) {
+                fieldState = "WATERED";
+            } else if (model.hasObject(HARVESTABLE, x, y)) {
+                fieldState = "HARVESTABLE";
+            } else {
+                fieldState = "EMPTY";
+            }
+
+            logger.info("Field state: " + fieldState);
+        
+            Literal plantStatusPercept = Literal.parseLiteral("plant_status(" + x + "," + y + "," + "\"" + fieldState + "\"" + "," + fieldHealth + ")");
+            addPercept(agentName, plantStatusPercept);
         }
     
         void simulatePlantDeath() {
@@ -239,6 +270,9 @@ public class FarmEnvironment extends Environment {
                 case FarmEnvironment.DEAD:
                     drawDead(g, x, y);
                     break;
+                case FarmEnvironment.HARVESTABLE:
+                    drawHarvestable(g, x, y);
+                    break;
             }
         }
     
@@ -273,19 +307,21 @@ public class FarmEnvironment extends Environment {
         private void drawPlanted(Graphics g, int x, int y) {
             g.setColor(Color.orange);
             g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
-            drawString(g, x, y, defaultFont, "P");
         }
     
         private void drawWatered(Graphics g, int x, int y) {
             g.setColor(Color.blue);
             g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
-            drawString(g, x, y, defaultFont, "W");
         }
     
         private void drawDead(Graphics g, int x, int y) {
             g.setColor(Color.red);
             g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
-            drawString(g, x, y, defaultFont, "D");
+        }
+
+        private void drawHarvestable(Graphics g, int x, int y) {
+            g.setColor(Color.yellow);
+            g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
         }
     }
 }
