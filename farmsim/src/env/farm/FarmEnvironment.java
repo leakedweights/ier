@@ -1,17 +1,22 @@
 package env.farm;
 
-import jason.asSyntax.*;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.logging.Logger;
+
+import jason.asSyntax.Literal;
+import jason.asSyntax.NumberTerm;
+import jason.asSyntax.Structure;
+import jason.asSyntax.Term;
 import jason.environment.Environment;
 import jason.environment.grid.GridWorldModel;
 import jason.environment.grid.GridWorldView;
 import jason.environment.grid.Location;
-
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-
-import java.util.*;
-import java.util.logging.Logger;
 
 public class FarmEnvironment extends Environment {
 
@@ -37,6 +42,7 @@ public class FarmEnvironment extends Environment {
     /* commands */
 
     public static final Term    ns = Literal.parseLiteral("next(slot)");
+    public static final Term    wp = Literal.parseLiteral("waterPlant(location)");
 
     static Logger logger = Logger.getLogger(FarmEnvironment.class.getName());
 
@@ -75,7 +81,11 @@ public class FarmEnvironment extends Environment {
                 int x = (int) ((NumberTerm) action.getTerm(0)).solve();
                 int y = (int) ((NumberTerm) action.getTerm(1)).solve();
                 model.survey(agentId, x, y);
-            } else {
+            } else if (action.equals(wp)) {
+                int x = (int) ((NumberTerm) action.getTerm(0)).solve();
+                int y = (int) ((NumberTerm) action.getTerm(1)).solve();
+                model.waterPlant(x, y);
+            }else {
                 return super.executeAction(ag, action);
             }
         } catch (Exception e) {
@@ -202,6 +212,14 @@ public class FarmEnvironment extends Environment {
 
         void survey(int agentId, int x, int y) {
             // Add survey logic here
+        }
+
+        void waterPlant(int x, int y){
+            if(hasObject(PLANTED, x, y)){
+                plantHealth[x][y] = 100;
+                plantWatered[x][y] = true;
+                lastWatered[x][y] = 0;
+            }
         }
     
         void simulatePlantDeath() {

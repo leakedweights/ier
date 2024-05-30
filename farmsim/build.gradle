@@ -29,7 +29,7 @@ dependencies {
 sourceSets {
     main {
         java {
-            srcDir 'src/java'
+            srcDir 'src/java' 
             srcDir 'src/env'
             srcDir '.' // some old jason apps store .java files in project root
         }
