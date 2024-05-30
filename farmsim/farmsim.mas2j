@@ -6,6 +6,7 @@ MAS farmsim {
         drone # 3;
         harvester;
         irrigation_robot;
+        auctioneer;
 
     aslSourcePath: "src/agt";
 }

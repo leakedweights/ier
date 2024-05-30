@@ -1,21 +1,61 @@
+// initialization
+
 !start.
 
-+!start : true <-
++!start <-
     .print("Drone started.");
-    .my_name(MyName);
-    ?pos(MyName, X, Y);
-    functions.SolveGreedyTSP([[10,10], [20,20], [20, 0], [0, 0], [15, 15]], [X, Y], PlannedRoute, PlannedCost);
-    .print("Route: ", PlannedRoute, ", Cost: ", PlannedCost);
-    !traverse_route(PlannedRoute).
+    .my_name(Name);
+    +route(Name, []).
+    
+// auction (sealed-bid)
 
-+!traverse_route([]) <-
-    .print("Completed the entire route.").
++!bid([X, Y])[source(auctioneer)] : true <-
 
-+!traverse_route([[X,Y]|Tail]) <-
-    .print("Going to next node: (", X, ", ", Y, ")");
-    !go_to(X,Y);
-    .print("Reached node: (", X, ", ", Y, ")");
-    !traverse_route(Tail).
+    .my_name(Name);
+    ?pos(Name, PosX, PosY);
+    ?route(Name, Route);
+
+    .concat(Route, [[X, Y]], NewRoute);
+    functions.SolveGreedyTSP(NewRoute, [PosX, PosY], _, Cost);
+    
+    .send(auctioneer, tell, bid([X, Y], Cost)).
+
++!win([X, Y])[source(auctioneer)] : true <-
+
+    .print("Won field: ", [X, Y]);
+
+    .my_name(Name);
+
+    ?route(Name, Queue);
+    .concat(Queue, [[X, Y]], NewQueue);
+
+    -route(Name, Queue);
+    +route(Name, NewQueue);
+
+    if(not(busy(Name))) {
+        +busy(Name);
+        !traverse_route;
+    }.
+
+// movement
+
++!traverse_route : true <-
+    .my_name(Name);
+    ?pos(Name, PosX, PosY);
+    ?route(Name, Queue);
+
+ 
+    if (not(.empty(Queue))) {
+        functions.SolveGreedyTSP(Queue, [PosX, PosY], [[X, Y]|NewQueue], _);
+
+        -route(Name, Queue);
+        +route(Name, NewQueue);
+
+        !go_to(X, Y);
+        !traverse_route;
+    } else {
+        -busy(Name);
+    }.
 
 +!go_to(X, Y) : true <-
     .my_name(Name);
@@ -23,6 +63,7 @@
         move_towards(X, Y);
         !go_to(X,Y);
     } else {
-      .print("Arrived at: (", X, ",", Y, ")");
-      survey(X, Y);  
+      .print("Surveying: (", X, ",", Y, ")");
+      survey(X, Y);
+      .broadcast(tell, survey_completed([X, Y]));
     }.
