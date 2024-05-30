@@ -1,10 +1,17 @@
 package functions;
 
-import jason.asSemantics.*;
-import jason.asSyntax.*;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
+
+import jason.asSemantics.DefaultInternalAction;
+import jason.asSemantics.TransitionSystem;
+import jason.asSemantics.Unifier;
+import jason.asSyntax.ListTerm;
+import jason.asSyntax.ListTermImpl;
+import jason.asSyntax.NumberTerm;
+import jason.asSyntax.NumberTermImpl;
+import jason.asSyntax.Term;
 
 public class SolveGreedyTSP extends DefaultInternalAction {
 

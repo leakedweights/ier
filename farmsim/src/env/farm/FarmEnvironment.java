@@ -42,12 +42,9 @@ public class FarmEnvironment extends Environment {
 
     /* commands */
 
-<<<<<<< HEAD
     public static final Term    ns = Literal.parseLiteral("next(slot)");
     public static final Term    wp = Literal.parseLiteral("waterPlant(location)");
 
-=======
->>>>>>> e39b1cb658662238371a47a2eb84ee5b76de5437
     static Logger logger = Logger.getLogger(FarmEnvironment.class.getName());
 
     private FarmModel model;
@@ -206,11 +203,13 @@ public class FarmEnvironment extends Environment {
         }
 
         void waterPlant(int x, int y){
-            if(hasObject(PLANTED, x, y)){
+          //  if(hasObject(PLANTED, x, y)){
+            System.out.println("XXXXXXX");
                 plantHealth[x][y] = 100;
                 plantWatered[x][y] = true;
                 lastWatered[x][y] = 0;
-            }
+                System.out.println("Plant watered on: " + x + ", " + y);
+           // }
         }
     
         void simulatePlantDeath() {
