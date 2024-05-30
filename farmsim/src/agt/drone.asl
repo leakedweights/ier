@@ -17,7 +17,6 @@
     .concat(Route, [[X, Y]], NewRoute);
     functions.SolveGreedyTSP(NewRoute, [PosX, PosY], _, Cost);
 
-    .print("Placing bid: ", [X, Y], ", cost: ", Cost);
     .send(auctioneer, tell, bid([X, Y], Cost)).
 
 +win([X, Y])[source(auctioneer)] : true <-
@@ -33,7 +32,6 @@
     +route(Name, NewQueue);
 
     if(not(busy(Name))) {
-        .print("not busy");
         +busy(Name);
         !traverse_route;
     }.
@@ -45,10 +43,8 @@
     ?pos(Name, PosX, PosY);
     ?route(Name, Queue);
 
-    .print("Traverse route called!");
-    
+ 
     if (not(.empty(Queue))) {
-        .print("Queue: ", Queue);
         functions.SolveGreedyTSP(Queue, [PosX, PosY], [[X, Y]|NewQueue], _);
 
         -route(Name, Queue);
@@ -57,7 +53,6 @@
         !go_to(X, Y);
         !traverse_route;
     } else {
-        .print("Queue empty.");
         -busy(Name);
     }.
 

@@ -32,7 +32,6 @@
 
 +survey_completed([X, Y])[source(Agent)] : true <-
     .wait(3000);
-    .print("Moving ", [X, Y], " to end of queue");
     ?auction_queue(Queue);
     .concat(Queue, [[X,Y]], NewQueue);
     .abolish(auction_queue(_));
@@ -64,7 +63,6 @@
     .send(Winner, tell, win(Field)).
 
 +!find_lowest_bid([[Agent, Bid] | Rest], CurrentWinner, CurrentLowestCost) : true <-
-    .print("Bid of ", Agent, ": ", Bid);
     if (Bid < CurrentLowestCost) {
         NewWinner = Agent;
         NewLowestCost = Bid;
