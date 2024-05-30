@@ -3,7 +3,6 @@
 !start_auction.
 
 +!start_auction : true <-
-    .print("Starting auction for fields.");
     .findall([X,Y], field(X, Y), Fields);
     +auction_queue(Fields);
     !next_auction.
@@ -11,11 +10,13 @@
 // auction schedule
 
 +!next_auction : true <-
-    .wait(1000);
+    .wait(500);
     .all_names(Agents);
     ?auction_queue(Queue);
     [[X, Y] | Rest] = Queue;
-    -auction_queue(Queue);
+    
+    .abolish(bid([_,_], _)[source(S)]);
+    .abolish(auction_queue(_));
     +auction_queue(Rest);
 
     .print("On auction: ", [X, Y]);
@@ -24,17 +25,16 @@
 
     for(.member(Agent, Agents)) {
         if(.substring("drone", Agent)) {
-            .send(Agent, tell, bid([X, Y]));
+            .send(Agent, achieve, bid([X, Y]));
             +pending_bid(Agent);
         };
     }.
 
 +survey_completed([X, Y])[source(Agent)] : true <-
     .wait(3000);
-    .print("Moving ", [X, Y], " to end of queue");
     ?auction_queue(Queue);
     .concat(Queue, [[X,Y]], NewQueue);
-    -auction_queue(Queue);
+    .abolish(auction_queue(_));
     +auction_queue(NewQueue).
 
 // bidding
@@ -60,10 +60,9 @@
 +!find_lowest_bid([], Winner, LowestCost) : true <-
     ?auction(Field);
     -auction(Field);
-    .send(Winner, tell, win(Field)).
+    .send(Winner, achieve, win(Field)).
 
 +!find_lowest_bid([[Agent, Bid] | Rest], CurrentWinner, CurrentLowestCost) : true <-
-    .print("Bid of ", Agent, ": ", Bid);
     if (Bid < CurrentLowestCost) {
         NewWinner = Agent;
         NewLowestCost = Bid;
