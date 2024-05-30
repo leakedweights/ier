@@ -37,8 +37,6 @@ public class FarmEnvironment extends Environment {
 
     /* commands */
 
-    public static final Term    ns = Literal.parseLiteral("next(slot)");
-
     static Logger logger = Logger.getLogger(FarmEnvironment.class.getName());
 
     private FarmModel model;

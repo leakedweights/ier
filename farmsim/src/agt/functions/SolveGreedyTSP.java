@@ -12,17 +12,16 @@ public class SolveGreedyTSP extends DefaultInternalAction {
 
     @Override
     public Object execute(TransitionSystem ts, Unifier un, Term[] args) throws Exception {
-        // Extract the list of points
         ListTerm pointsList = (ListTerm) args[0];
         List<int[]> points = new ArrayList<>();
 
-        // Extract starting point
         ListTerm startPointList = (ListTerm) args[1];
         int[] startPoint = new int[2];
         startPoint[0] = (int) ((NumberTerm) startPointList.get(0)).solve();
         startPoint[1] = (int) ((NumberTerm) startPointList.get(1)).solve();
 
-        // Extract all points from the list term
+        points.add(startPoint);
+
         for (Term t : pointsList) {
             ListTerm point = (ListTerm) t;
             int[] coordinates = new int[2];
@@ -31,24 +30,11 @@ public class SolveGreedyTSP extends DefaultInternalAction {
             points.add(coordinates);
         }
 
-        // Ensure the startPoint is in the list and find its index
-        int startIndex = -1;
-        for (int i = 0; i < points.size(); i++) {
-            if (Arrays.equals(points.get(i), startPoint)) {
-                startIndex = i;
-                break;
-            }
-        }
-        if (startIndex == -1) {
-            points.add(startPoint);
-            startIndex = points.size() - 1;
-        }
+        List<int[]> route = solveGreedyTSP(points, 0);
+        double cost = calculateRouteCost(route, startPoint);
 
-        // Apply the greedy TSP algorithm
-        List<int[]> route = solveGreedyTSP(points, startIndex);
-        double cost = calculateRouteCost(route);
+        route.remove(0); // remove current position
 
-        // Convert the route and cost to Jason terms
         ListTerm plannedRoute = new ListTermImpl();
         for (int[] point : route) {
             ListTerm pointTerm = new ListTermImpl();
@@ -56,10 +42,9 @@ public class SolveGreedyTSP extends DefaultInternalAction {
             pointTerm.add(new NumberTermImpl(point[1]));
             plannedRoute.add(pointTerm);
         }
-
+    
         NumberTerm plannedCost = new NumberTermImpl(cost);
 
-        // Unify the results with the output variables
         return un.unifies(plannedRoute, args[2]) && un.unifies(plannedCost, args[3]);
     }
 
@@ -96,18 +81,18 @@ public class SolveGreedyTSP extends DefaultInternalAction {
     }
 
     private double calculateDistance(int[] point1, int[] point2) {
-        int dx = point1[0] - point2[0];
-        int dy = point1[1] - point2[1];
-        return Math.sqrt(dx * dx + dy * dy);
+        int dx = Math.abs(point1[0] - point2[0]);
+        int dy = Math.abs(point1[1] - point2[1]);
+        return dx + dy;
     }
 
-    private double calculateRouteCost(List<int[]> route) {
+    private double calculateRouteCost(List<int[]> route, int[] startPoint) {
         double cost = 0.0;
-        for (int i = 0; i < route.size() - 1; i++) {
-            cost += calculateDistance(route.get(i), route.get(i + 1));
+        int[] previousPoint = startPoint;
+        for (int[] point : route) {
+            cost += calculateDistance(previousPoint, point);
+            previousPoint = point;
         }
-        // Optionally, add the cost of returning to the start point to complete the circuit
-        // cost += calculateDistance(route.get(route.size() - 1), route.get(0));
         return cost;
     }
 }
