@@ -108,7 +108,7 @@ public class FarmEnvironment extends Environment {
         for (int x = 0; x < GRID_SIZE; x++) {
             for (int y = 0; y < GRID_SIZE; y++) {
                 if (model.hasObject(FIELD, x, y)) {
-                    addPercept(Literal.parseLiteral("field(" + x + "," + y + ")"));
+                    addPercept("auctioneer", Literal.parseLiteral("field(" + x + "," + y + ")"));
                 }
             }
         }

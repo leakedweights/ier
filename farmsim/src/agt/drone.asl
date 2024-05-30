@@ -2,75 +2,64 @@
 
 !start.
 
-+!start : true <-
++!start <-
     .print("Drone started.");
-    .my_name(MyName);
-    +route(MyName, []);
-    +queued_destinations(MyName, []);
-    +busy(MyName, false).
-
+    .my_name(Name);
+    +route(Name, []).
+    
 // auction (sealed-bid)
 
-+bid([X, Y])[source(S)] : true <-
-    .my_name(MyName);
-    ?pos(MyName, PosX, PosY);
-    ?route(MyName, Route);
++bid([X, Y])[source(auctioneer)] : true <-
+    .my_name(Name);
+    ?pos(Name, PosX, PosY);
+    ?route(Name, Route);
+
     .concat(Route, [[X, Y]], NewRoute);
     functions.SolveGreedyTSP(NewRoute, [PosX, PosY], _, Cost);
+
+    .print("Placing bid: ", [X, Y], ", cost: ", Cost);
     .send(auctioneer, tell, bid([X, Y], Cost)).
 
 +win([X, Y])[source(auctioneer)] : true <-
 
     .print("Won field: ", [X, Y]);
 
-    .my_name(MyName);
-    ?busy(MyName, Busy);
-    if (Busy) {
-        ?queued_destinations(MyName, QDests);
-        .concat(QDests, [[X, Y]], NewQDests);
-        -queued_destinations(MyName, QDests);
-        +queued_destinations(MyName, NewQDests);
-        .print("Added ", [X, Y], " to queue.");
-    } else {
-        +busy(MyName, true);
-        ?pos(MyName, PosX, PosY);
-        ?route(MyName, Route);
-        .concat(Route, [[X, Y]], NewRoute);
-        functions.SolveGreedyTSP(NewRoute, [PosX, PosY], OptimizedRoute, _);
-        .print("Optimized route: ", OptimizedRoute);
-        -route(MyName, Route);
-        +route(MyName, OptimizedRoute);
-        !traverse_route(OptimizedRoute);
+    .my_name(Name);
+
+    ?route(Name, Queue);
+    .concat(Queue, [[X, Y]], NewQueue);
+
+    -route(Name, Queue);
+    +route(Name, NewQueue);
+
+    if(not(busy(Name))) {
+        .print("not busy");
+        +busy(Name);
+        !traverse_route;
     }.
 
 // movement
 
-+!traverse_route([]) <-
-    .my_name(MyName);
-    ?pos(MyName, X, Y);
-    -busy(MyName, true);
-    ?queued_destinations(MyName, QDests);
-    if (not(.empty(QDests))) {
-        +busy(MyName, true);
++!traverse_route : true <-
+    .my_name(Name);
+    ?pos(Name, PosX, PosY);
+    ?route(Name, Queue);
 
-        // clear queue
-        -queued_destinations(MyName, QDests);
-        +queued_destinations(MyName, []);
+    .print("Traverse route called!");
+    
+    if (not(.empty(Queue))) {
+        .print("Queue: ", Queue);
+        functions.SolveGreedyTSP(Queue, [PosX, PosY], [[X, Y]|NewQueue], _);
 
-        // optimize and traverse new route
-        ?route(MyName, Route);
-        .concat(Route, QDests, NewRoute);
-        functions.SolveGreedyTSP(NewRoute, [X, Y], OptimizedRoute, _);
+        -route(Name, Queue);
+        +route(Name, NewQueue);
 
-        -route(MyName, Route);
-        +route(MyName, OptimizedRoute);
-
-        !traverse_route(OptimizedRoute);
+        !go_to(X, Y);
+        !traverse_route;
+    } else {
+        .print("Queue empty.");
+        -busy(Name);
     }.
-
-+!traverse_route([[X,Y]|Tail]) <-
-    !go_to(X,Y);
-    !traverse_route(Tail).
 
 +!go_to(X, Y) : true <-
     .my_name(Name);
