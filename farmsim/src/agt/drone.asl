@@ -22,8 +22,6 @@
 
 +!win([X, Y])[source(auctioneer)] : true <-
 
-    .print("Won field: ", [X, Y]);
-
     .my_name(Name);
 
     ?route(Name, Queue);
@@ -59,8 +57,6 @@
 
 
 +plant_status(X, Y, PlantState, PlantHealth) : true <-
-    .print("Status of ", [X, Y], ": ", PlantState, ", Health: ", PlantHealth);
-
     if(PlantState == "HARVESTABLE" | PlantState == "EMPTY") {
         .send(harvester, tell, plant_status(X, Y, PlantState));
     };
@@ -76,19 +72,6 @@
         move_towards(X, Y);
         !go_to(X,Y);
     } else {
-      .print("Surveying: (", X, ",", Y, ")");
-<<<<<<< HEAD
-      !survey_completed([X, Y]);
-    }.
-
-//sending data to harvester
-+!survey_completed([X, Y]) : true <-
-    .print("Survey completed at: (", X, ",", Y, ")");
-    State = getState(X, Y);
-    Health = getHealth(X, Y);
-    .send(harvester, tell, fieldState([X, Y, State, Health])).
-=======
       survey(X, Y);
       .broadcast(tell, survey_completed([X, Y]));
     }.
->>>>>>> bd54d6d7809c0ea6326daa7417f13b3f1301f837

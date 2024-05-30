@@ -26,7 +26,7 @@ public class FarmEnvironment extends Environment {
     public static final int DEAD = 256;
     public static final int HARVESTABLE = 512;
 
-    private static final int MATURITY_AGE = 30;
+    private static final int MATURITY_AGE = 200;
     private static final int WATERING_INTERVAL = 5;
     private static final double DEATH_PROBABILITY = 0.05;
     private static final double HEALTH_DECREASE = 0.10;
@@ -86,6 +86,8 @@ public class FarmEnvironment extends Environment {
         }
 
         updatePercepts();
+        //SIMULATE GROWTH
+        model.simulatePlanGrow();
 
         try {
             Thread.sleep(200);
@@ -147,6 +149,7 @@ public class FarmEnvironment extends Environment {
         private int[][] plantAge;
         private boolean[][] plantWatered;
         private int[][] lastWatered;
+        private boolean[][] isHarvestable;
 
         Random random = new Random(System.currentTimeMillis());
 
@@ -157,6 +160,7 @@ public class FarmEnvironment extends Environment {
             plantAge = new int[GRID_SIZE][GRID_SIZE];
             plantWatered = new boolean[GRID_SIZE][GRID_SIZE];
             lastWatered = new int[GRID_SIZE][GRID_SIZE];
+            isHarvestable = new boolean[GRID_SIZE][GRID_SIZE];
 
             try {
                 setAgPos(0, 0, 0); // Drone 1 at (0, 0)
@@ -182,9 +186,12 @@ public class FarmEnvironment extends Environment {
         void plant(int x, int y) {
             if (hasObject(FIELD, x, y)) {
                 add(PLANTED, x, y);
+                plantAge[x][y] = 0;
+                logger.info("Planted: (" + x + "," + y + ")");
+                updatePercepts(); // Update percepts after planting
             }
         }
-
+        
         void harvest(int x, int y) {
             if (hasObject(FIELD, x, y)) {
                 remove(PLANTED, x, y);
@@ -192,8 +199,10 @@ public class FarmEnvironment extends Environment {
                     remove(WATERED, x, y);
                 }
                 logger.info("Harvested: (" + x + "," + y + ")");
+                updatePercepts(); // Update percepts after harvesting
             }
         }
+
     
         void water(int x, int y) {
             if (hasObject(PLANTED, x, y)) {
@@ -201,16 +210,47 @@ public class FarmEnvironment extends Environment {
             }
         }
 
-        void survey(int agentId, int x, int y) {
-            add(DEAD, x, y);
+        void survey(String agentName, int x, int y) {
+            String fieldState;
+            double fieldHealth = plantHealth[x][y];
+
+            if (model.hasObject(PLANTED, x, y)) {
+                fieldState = "PLANTED";
+            } else if (model.hasObject(WATERED, x, y)) {
+                fieldState = "WATERED";
+            } else if (model.hasObject(HARVESTABLE, x, y)) {
+                fieldState = "HARVESTABLE";
+            } else {
+                fieldState = "EMPTY";
+            }
+
+            logger.info("Field state: " + fieldState);
+        
+            Literal plantStatusPercept = Literal.parseLiteral("plant_status(" + x + "," + y + "," + "\"" + fieldState + "\"" + "," + fieldHealth + ")");
+            addPercept(agentName, plantStatusPercept);
         }
     
-        void simulatePlantDeath() {
+        void simulatePlantDeath_Random() {
             for (int x = 0; x < GRID_SIZE; x++) {
                 for (int y = 0; y < GRID_SIZE; y++) {
                     if (hasObject(WATERED, x, y) && random.nextDouble() < DEATH_PROBABILITY) {
                         remove(WATERED, x, y);
                         add(DEAD, x, y);
+                    }
+                }
+            }
+        }
+
+        void simulatePlanGrow() {
+            for (int x = 0; x < GRID_SIZE; x++) {
+                for (int y = 0; y < GRID_SIZE; y++) {
+                    if (hasObject(PLANTED, x, y)) {
+                        plantAge[x][y]++;
+                        if (plantAge[x][y] >= MATURITY_AGE) {
+                            isHarvestable[x][y] = true;
+                            remove(PLANTED, x, y);
+                            add(HARVESTABLE, x, y);
+                        }
                     }
                 }
             }
@@ -227,26 +267,6 @@ public class FarmEnvironment extends Environment {
             else if (loc.y > y)
                 loc.y--;
             setAgPos(agentId, loc);
-        }
-
-        //get plant/field health
-        double getHealth(int x, int y)
-        {
-            return plantHealth[x][y];
-        }
-
-        //get plant/field health
-        public String getState(int x, int y) {
-            // Replace with your logic to determine the field state
-            if (model.hasObject(PLANTED, x, y)) {
-                return "PLANTED";
-            } else if (model.hasObject(WATERED, x, y)) {
-                return "WATERED";
-            } else if (model.hasObject(DEAD, x, y)) {
-                return "DEAD";
-            } else {
-                return "NULL";
-            }
         }
     }
 

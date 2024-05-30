@@ -19,8 +19,6 @@
     .abolish(auction_queue(_));
     +auction_queue(Rest);
 
-    .print("On auction: ", [X, Y]);
-
     +auction([X, Y]);
 
     for(.member(Agent, Agents)) {
