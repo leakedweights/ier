@@ -25,7 +25,7 @@
 
     for(.member(Agent, Agents)) {
         if(.substring("drone", Agent)) {
-            .send(Agent, tell, bid([X, Y]));
+            .send(Agent, achieve, bid([X, Y]));
             +pending_bid(Agent);
         };
     }.
@@ -60,7 +60,7 @@
 +!find_lowest_bid([], Winner, LowestCost) : true <-
     ?auction(Field);
     -auction(Field);
-    .send(Winner, tell, win(Field)).
+    .send(Winner, achieve, win(Field)).
 
 +!find_lowest_bid([[Agent, Bid] | Rest], CurrentWinner, CurrentLowestCost) : true <-
     if (Bid < CurrentLowestCost) {

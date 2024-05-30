@@ -9,17 +9,18 @@
     
 // auction (sealed-bid)
 
-+bid([X, Y])[source(auctioneer)] : true <-
++!bid([X, Y])[source(auctioneer)] : true <-
+
     .my_name(Name);
     ?pos(Name, PosX, PosY);
     ?route(Name, Route);
 
     .concat(Route, [[X, Y]], NewRoute);
     functions.SolveGreedyTSP(NewRoute, [PosX, PosY], _, Cost);
-
+    
     .send(auctioneer, tell, bid([X, Y], Cost)).
 
-+win([X, Y])[source(auctioneer)] : true <-
++!win([X, Y])[source(auctioneer)] : true <-
 
     .print("Won field: ", [X, Y]);
 
