@@ -30,7 +30,7 @@ public class FarmEnvironment extends Environment {
     private static final int MATURITY_AGE = 300;
     private static final int WATERING_INTERVAL = 50;
     private static final double DEATH_PROBABILITY =  0.001;
-    private static final double HEALTH_DECREASE = 0.5;
+    private static final double HEALTH_DECREASE = 0.1;
 
     private static final int NUM_DRONES = 3;
     private static final int HARVESTER_ID = 3;
