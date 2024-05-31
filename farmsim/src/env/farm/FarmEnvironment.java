@@ -179,18 +179,19 @@ public class FarmEnvironment extends Environment {
 
         @Override
         public Location getAgPos(int agentId) {
-            return lastLocations.get(agentId);
+            Location agPos = super.getAgPos(agentId);
+            if(agPos == null) {
+                logger.info("Agpos null for agent " + agentId);
+                agPos = lastLocations.get(agentId);
+            }
+            return agPos;
         }
 
         @Override
         public void setAgPos(int agentId, Location loc) {
             lastLocations.remove(agentId);
-            Location oldLoc = getAgPos(agentId);
-            if (oldLoc != null) {
-                remove(AGENT, oldLoc.x, oldLoc.y);
-            }
-            add(AGENT, loc.x, loc.y);
             lastLocations.put(agentId, loc);
+            super.setAgPos(agentId, loc);
         }
 
         @Override
