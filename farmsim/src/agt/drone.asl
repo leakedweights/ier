@@ -10,6 +10,15 @@
     
 // auction (sealed-bid)
 
++blocked(X, Y, Agent) : true <-
+    .my_name(Name);
+    .print("Blocked by ", Agent);
+    ?pos(Name, PosX, PosY);
+    .send(Agent, achieve, conflict([X,Y], [PosX, PosY])).
+
++!conflict([X,Y], [PosX, PosY]) : true <-
+    !move_towards(PosX - X, PosY + Y).
+
 +!bid([X, Y])[source(auctioneer)] : true <-
 
     .my_name(Name);
@@ -22,8 +31,6 @@
     .send(auctioneer, tell, bid([X, Y], Cost)).
 
 +!win([X, Y])[source(auctioneer)] : true <-
-
-    .print("Won field: ", [X, Y]);
 
     .my_name(Name);
 
@@ -61,12 +68,12 @@
 
 +plant_status(X, Y, PlantState, PlantHealth) : true <-
 
-    if(PlantState == "HARVESTABLE" | PlantState == "EMPTY") {
+    if(PlantState == "HARVESTABLE" | PlantState == "EMPTY" | PlantState == "DEAD") {
         .send(harvester, tell, plant_status(X, Y, PlantState));
     };
 
-    if(not(PlantState == "WATERED") | not(PlantState == "EMPTY")) {
-        .send(irrigation_robot, tell, plant_status(X, Y, PlantState, PlantHealth));
+    if(PlantState == "PLANTED") {
+        .send(irrigation_robot, tell, plant_status(X, Y, PlantHealth));
     }.
     
 
@@ -76,7 +83,6 @@
         move_towards(X, Y);
         !go_to(X,Y);
     } else {
-      .print("Surveying: (", X, ",", Y, ")");
       survey(X, Y);
       .send(auctioneer, achieve, survey_completed([X, Y]));
     }.
