@@ -96,15 +96,15 @@
             .queue.remove(HarvestableQ, [X, Y]);
             !move_and_harvest(X, Y);
             !iterate;
-        } elif (not(DeadFieldQSize == 0)) {
-            +busy(Name);
-            .queue.remove(DeadFieldQ, [X, Y]);
-            !move_and_remove(X, Y);
-            !iterate;
         } elif (not(EmptyFieldQSize == 0)) {
             +busy(Name);
             .queue.remove(EmptyFieldQ, [X, Y]);
             !move_and_plant(X, Y);
+            !iterate;
+        } elif (not(DeadFieldQSize == 0)) {
+            +busy(Name);
+            .queue.remove(DeadFieldQ, [X, Y]);
+            !move_and_remove(X, Y);
             !iterate;
         };
     }.
@@ -142,7 +142,7 @@
     } else {
       remove(X, Y);
       .abolish(plant_status(X, Y, _));
-      +plant_status(X, Y, "DEAD");
+      +plant_status(X, Y, "EMPTY");
       -busy(Name);
     }.
 

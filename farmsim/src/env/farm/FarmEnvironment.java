@@ -28,7 +28,7 @@ public class FarmEnvironment extends Environment {
     public static final int HARVESTABLE = 512;
 
     private static final int MATURITY_AGE = 300;
-    private static final int WATERING_INTERVAL = 100;
+    private static final int WATERING_INTERVAL = 50;
     private static final double DEATH_PROBABILITY =  0.001;
     private static final double HEALTH_DECREASE = 0.5;
 
@@ -210,6 +210,7 @@ public class FarmEnvironment extends Environment {
         }
 
         void plant(int x, int y) {
+            logger.info("Planting plant");
             if (hasObject(FIELD, x, y)) {
                 plantHealth[x][y] = 100;
                 plantAge[x][y] = 0;
@@ -218,6 +219,7 @@ public class FarmEnvironment extends Environment {
         }
 
         void harvest(int x, int y) {
+            logger.info("Harvesting plant at: " + x + " "+ y);
             plantHealth[x][y] = 0;
             plantAge[x][y] = 0;
             remove(HARVESTABLE, x, y);
@@ -226,14 +228,17 @@ public class FarmEnvironment extends Environment {
         }
 
         void remove(int x, int y) {
-            plantHealth[x][y] = 100;
+            logger.info("Removing plant at: " + x + " "+ y);
+            plantHealth[x][y] = 0;
             plantAge[x][y] = 0;
             remove(DEAD, x, y);
             remove(PLANTED, x, y);
             remove(WATERED, x, y);
+            remove(HARVESTABLE, x, y);
         }
     
         void water(int x, int y) {
+            logger.info("Watering plant");
             if (hasObject(PLANTED, x, y)) {
                 plantHealth[x][y] = 100;
                 lastWatered[x][y] = 0;
@@ -273,17 +278,13 @@ public class FarmEnvironment extends Environment {
                             plantHealth[x][y] -= HEALTH_DECREASE;
                             if (plantHealth[x][y] <= 0){
                                 remove(PLANTED, x, y);
-                                if (hasObject(WATERED, x, y)) {
-                                    remove(WATERED, x, y);
-                                }
+                                remove(WATERED, x, y);
                                 add(DEAD, x, y);
                             }
                         }
                         else if (random.nextDouble() < DEATH_PROBABILITY) {
                             remove(PLANTED, x, y);
-                            if (hasObject(WATERED, x, y)) {
-                                remove(WATERED, x, y);
-                            }
+                            remove(WATERED, x, y);
                             add(DEAD, x, y);
                         }
                     }
@@ -296,7 +297,7 @@ public class FarmEnvironment extends Environment {
                 for (int y = 0; y < GRID_SIZE; y++) {
                     if (hasObject(PLANTED, x, y)) {
                         plantAge[x][y]++;
-                        if (plantAge[x][y] >= MATURITY_AGE && (hasObject(WATERED, x, y))) {
+                        if (plantAge[x][y] >= MATURITY_AGE) {
                             remove(PLANTED, x, y);
                             remove(WATERED, x, y);
                             add(HARVESTABLE, x, y);
