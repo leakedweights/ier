@@ -30,7 +30,7 @@
         };
     }.
 
-+survey_completed([X, Y])[source(Agent)] : true <-
++!survey_completed([X, Y])[source(Agent)] : true <-
     .wait(3000);
     ?auction_queue(Queue);
     .concat(Queue, [[X,Y]], NewQueue);

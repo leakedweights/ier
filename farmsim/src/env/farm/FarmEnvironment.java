@@ -11,6 +11,7 @@ import java.awt.Font;
 import java.awt.Graphics;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 public class FarmEnvironment extends Environment {
@@ -27,7 +28,7 @@ public class FarmEnvironment extends Environment {
 
     private static final int MATURITY_AGE = 300;
     private static final int WATERING_INTERVAL = 5;
-    private static final double DEATH_PROBABILITY = 0.05;
+    private static final double DEATH_PROBABILITY =  0.001;
     private static final double HEALTH_DECREASE = 0.10;
 
     private static final int NUM_DRONES = 3;
@@ -74,6 +75,10 @@ public class FarmEnvironment extends Environment {
                 int x = (int) ((NumberTerm) action.getTerm(0)).solve();
                 int y = (int) ((NumberTerm) action.getTerm(1)).solve();
                 model.survey(ag, x, y);
+            } else if (action.getFunctor().equals("remove")) {
+                int x = (int) ((NumberTerm) action.getTerm(0)).solve();
+                int y = (int) ((NumberTerm) action.getTerm(1)).solve();
+                model.remove(x, y);
             } else {
                 return super.executeAction(ag, action);
             }
@@ -91,6 +96,7 @@ public class FarmEnvironment extends Environment {
         }
         informAgsEnvironmentChanged();
         model.simulatePlantGrowth();
+        model.simulatePlantDeath_Random();
         return true;
     }
 
@@ -99,17 +105,15 @@ public class FarmEnvironment extends Environment {
     
         Location harvesterLocation = model.getAgPos(HARVESTER_ID);
         addPercept(Literal.parseLiteral("pos(harvester" + "," + harvesterLocation.x + "," + harvesterLocation.y + ")"));
-
-       
+    
         Location irrigationRobotLocation = model.getAgPos(IRRIGATION_ROBOT_ID);
         addPercept(Literal.parseLiteral("pos(irrigation_robot" + "," + irrigationRobotLocation.x + "," + irrigationRobotLocation.y + ")"));
     
-
-        for (int i = 0; i < NUM_DRONES; i++) {       
+        for (int i = 0; i < NUM_DRONES; i++) {
             Location droneLocation = model.getAgPos(i);
             addPercept(Literal.parseLiteral("pos(drone" + (i + 1) + "," + droneLocation.x + "," + droneLocation.y + ")"));
         }
-
+    
         for (int x = 0; x < GRID_SIZE; x++) {
             for (int y = 0; y < GRID_SIZE; y++) {
                 if (model.hasObject(FIELD, x, y)) {
@@ -117,6 +121,17 @@ public class FarmEnvironment extends Environment {
                 }
             }
         }
+    
+        for (Map.Entry<Integer, Location> entry : model.getBlockedState().entrySet()) {
+            int agentId = entry.getKey();
+            Location loc = entry.getValue();
+            String agentName = getAgentName(agentId);
+            String blockingAgent = getAgentName(model.getAgAtPos(loc));
+            Literal blockedPercept = Literal.parseLiteral("blocked(" + loc.x + "," + loc.y + "," + blockingAgent + ")");
+            addPercept(agentName, blockedPercept);
+        }
+    
+        model.clearBlockedState();
     }
 
     private int getAgentId(String agName) {
@@ -141,14 +156,30 @@ public class FarmEnvironment extends Environment {
         }
     }
 
+    private String getAgentName(int agentId) {
+        if (agentId >= 0 && agentId < NUM_DRONES) {
+            return "drone" + (agentId + 1);
+        } else if (agentId == HARVESTER_ID) {
+            return "harvester";
+        } else if (agentId == IRRIGATION_ROBOT_ID) {
+            return "irrigation_robot";
+        } else if (agentId == AUCTIONEER_ID) {
+            return "auctioneer";
+        } else {
+            throw new IllegalArgumentException("Unknown agent ID: " + agentId);
+        }
+    }
+    
+
     class FarmModel extends GridWorldModel {
 
         private double[][] plantHealth;
         private int[][] plantAge;
         private int[][] lastWatered;
-        private Map<Integer, Location> lastLocations;
 
         Random random = new Random(System.currentTimeMillis());
+
+        private Map<Integer, Location> blockedState;
 
         private FarmModel() {
             super(GRID_SIZE, GRID_SIZE, 6);
@@ -156,15 +187,15 @@ public class FarmEnvironment extends Environment {
             plantHealth = new double[GRID_SIZE][GRID_SIZE];
             plantAge = new int[GRID_SIZE][GRID_SIZE];
             lastWatered = new int[GRID_SIZE][GRID_SIZE];
-            lastLocations = new HashMap<>();
+            blockedState = new ConcurrentHashMap <>();
 
             try {
-                setAgPos(0, 0, 0); // Drone 1 at (0, 0)
-                setAgPos(1, GRID_SIZE - 1, 0); // Drone 2 at (25, 0)
-                setAgPos(2, 0, GRID_SIZE - 1); // Drone 3 at (0, 25)
+                setAgPos(0, 0, 0);
+                setAgPos(1, GRID_SIZE - 1, 0);
+                setAgPos(2, 0, GRID_SIZE - 1);
                 
-                setAgPos(IRRIGATION_ROBOT_ID, GRID_SIZE / 2, GRID_SIZE / 2); // Irrigation robot at the center
-                setAgPos(HARVESTER_ID, GRID_SIZE - 1, GRID_SIZE - 1); // Harvester at the bottom right corner
+                setAgPos(IRRIGATION_ROBOT_ID, GRID_SIZE / 2, GRID_SIZE - 1);
+                setAgPos(HARVESTER_ID, GRID_SIZE - 1, GRID_SIZE - 1);
     
             } catch (Exception e) {
                 e.printStackTrace();
@@ -177,28 +208,6 @@ public class FarmEnvironment extends Environment {
                     } 
                 }
             }
-        }
-
-        @Override
-        public Location getAgPos(int agentId) {
-            Location agPos = super.getAgPos(agentId);
-            if(agPos == null) {
-                logger.info("Agpos null for agent " + agentId);
-                agPos = lastLocations.get(agentId);
-            }
-            return agPos;
-        }
-
-        @Override
-        public void setAgPos(int agentId, Location loc) {
-            lastLocations.remove(agentId);
-            lastLocations.put(agentId, loc);
-            super.setAgPos(agentId, loc);
-        }
-
-        @Override
-        public void setAgPos(int agentId, int x, int y) {
-           setAgPos(agentId, new Location(x, y));
         }
 
         void plant(int x, int y) {
@@ -223,6 +232,16 @@ public class FarmEnvironment extends Environment {
             }
         }
 
+        void remove(int x, int y) {
+            plantHealth[x][y] = 100;
+            plantAge[x][y] = 0;
+            plantAge[x][y] = 0;
+            remove(DEAD, x, y);
+            remove(PLANTED, x, y);
+            if (hasObject(WATERED, x, y)) {
+                remove(WATERED, x, y);
+            }
+        }
     
         void water(int x, int y) {
             if (hasObject(PLANTED, x, y)) {
@@ -240,6 +259,8 @@ public class FarmEnvironment extends Environment {
                 fieldState = "WATERED";
             } else if (model.hasObject(HARVESTABLE, x, y)) {
                 fieldState = "HARVESTABLE";
+            } else if (model.hasObject(DEAD, x, y)) {
+                fieldState = "DEAD";
             } else {
                 fieldState = "EMPTY";
                 fieldHealth = 0;
@@ -252,8 +273,11 @@ public class FarmEnvironment extends Environment {
         void simulatePlantDeath_Random() {
             for (int x = 0; x < GRID_SIZE; x++) {
                 for (int y = 0; y < GRID_SIZE; y++) {
-                    if (hasObject(WATERED, x, y) && random.nextDouble() < DEATH_PROBABILITY) {
-                        remove(WATERED, x, y);
+                    if (hasObject(PLANTED, x, y) && random.nextDouble() < DEATH_PROBABILITY) {
+                        remove(PLANTED, x, y);
+                        if (hasObject(WATERED, x, y)) {
+                            remove(WATERED, x, y);
+                        }
                         add(DEAD, x, y);
                     }
                 }
@@ -276,15 +300,33 @@ public class FarmEnvironment extends Environment {
 
         void moveTowards(int agentId, int x, int y) throws Exception {
             Location loc = getAgPos(agentId);
-            if (loc.x < x)
-                loc.x++;
-            else if (loc.x > x)
-                loc.x--;
-            if (loc.y < y)
-                loc.y++;
-            else if (loc.y > y)
-                loc.y--;
-            setAgPos(agentId, loc);
+            Location target = new Location(loc.x, loc.y);
+        
+            if (loc.x < x) {
+                target.x++;
+            } else if (loc.x > x) {
+                target.x--;
+            }
+            if (loc.y < y) {
+                target.y++;
+            } else if (loc.y > y) {
+                target.y--;
+            }
+        
+            if (isFree(target.x, target.y)) {
+                setAgPos(agentId, target);
+            } else {
+                int blockingAgent = getAgAtPos(target);
+                blockedState.put(agentId, target);
+            }
+        }
+        
+        public Map<Integer, Location> getBlockedState() {
+            return blockedState;
+        }
+    
+        public void clearBlockedState() {
+            blockedState.clear();
         }
     }
 
@@ -353,12 +395,14 @@ public class FarmEnvironment extends Environment {
         }
     
         private void drawWatered(Graphics g, int x, int y) {
-            g.setColor(Color.blue);
+            Color blue = new Color(173,216,230);
+            g.setColor(blue);
             g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
         }
     
         private void drawDead(Graphics g, int x, int y) {
-            g.setColor(Color.red);
+            Color red = new Color(205,92,92);
+            g.setColor(red);
             g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
         }
 
