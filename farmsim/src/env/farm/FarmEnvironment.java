@@ -139,12 +139,26 @@ public class FarmEnvironment extends Environment {
         }
     }
 
+    private String getAgentName(int agentId) {
+        if (agentId >= 0 && agentId < NUM_DRONES) {
+            return "drone" + (agentId + 1);
+        } else if (agentId == HARVESTER_ID) {
+            return "harvester";
+        } else if (agentId == IRRIGATION_ROBOT_ID) {
+            return "irrigation_robot";
+        } else if (agentId == AUCTIONEER_ID) {
+            return "auctioneer";
+        } else {
+            throw new IllegalArgumentException("Unknown agent ID: " + agentId);
+        }
+    }
+    
+
     class FarmModel extends GridWorldModel {
 
         private double[][] plantHealth;
         private int[][] plantAge;
         private int[][] lastWatered;
-        private Map<Integer, Location> lastLocations;
 
         Random random = new Random(System.currentTimeMillis());
 
@@ -154,7 +168,6 @@ public class FarmEnvironment extends Environment {
             plantHealth = new double[GRID_SIZE][GRID_SIZE];
             plantAge = new int[GRID_SIZE][GRID_SIZE];
             lastWatered = new int[GRID_SIZE][GRID_SIZE];
-            lastLocations = new HashMap<>();
 
             try {
                 setAgPos(0, 0, 0); // Drone 1 at (0, 0)
@@ -175,28 +188,6 @@ public class FarmEnvironment extends Environment {
                     } 
                 }
             }
-        }
-
-        @Override
-        public Location getAgPos(int agentId) {
-            Location agPos = super.getAgPos(agentId);
-            if(agPos == null) {
-                logger.info("Agpos null for agent " + agentId);
-                agPos = lastLocations.get(agentId);
-            }
-            return agPos;
-        }
-
-        @Override
-        public void setAgPos(int agentId, Location loc) {
-            lastLocations.remove(agentId);
-            lastLocations.put(agentId, loc);
-            super.setAgPos(agentId, loc);
-        }
-
-        @Override
-        public void setAgPos(int agentId, int x, int y) {
-           setAgPos(agentId, new Location(x, y));
         }
 
         void plant(int x, int y) {
@@ -270,16 +261,29 @@ public class FarmEnvironment extends Environment {
 
         void moveTowards(int agentId, int x, int y) throws Exception {
             Location loc = getAgPos(agentId);
-            if (loc.x < x)
-                loc.x++;
-            else if (loc.x > x)
-                loc.x--;
-            if (loc.y < y)
-                loc.y++;
-            else if (loc.y > y)
-                loc.y--;
-            setAgPos(agentId, loc);
+            Location target = new Location(loc.x, loc.y);
+        
+            if (loc.x < x) {
+                target.x++;
+            } else if (loc.x > x) {
+                target.x--;
+            }
+            if (loc.y < y) {
+                target.y++;
+            } else if (loc.y > y) {
+                target.y--;
+            }
+        
+            if (isFree(target.x, target.y)) {
+                setAgPos(agentId, target);
+            } else {
+                String blockingAgent = getAgentName(getAgAtPos(target));
+                String agName = getAgentName(agentId);
+                Literal blockedPercept = Literal.parseLiteral("blocked(" + target.x + "," + target.y + "," + blockingAgent + ")");
+                addPercept(agName, blockedPercept);
+            }
         }
+        
     }
 
     class FarmView extends GridWorldView {

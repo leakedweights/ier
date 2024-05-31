@@ -78,5 +78,5 @@
     } else {
       .print("Surveying: (", X, ",", Y, ")");
       survey(X, Y);
-      .send(auctioneer, tell, survey_completed([X, Y]));
+      .send(auctioneer, achieve, survey_completed([X, Y]));
     }.
