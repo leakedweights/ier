@@ -4,6 +4,7 @@
 
 +!start <-
     .print("Drone started.");
+    .wait(1000);
     .my_name(Name);
     +route(Name, []).
     
@@ -73,5 +74,5 @@
         !go_to(X,Y);
     } else {
       survey(X, Y);
-      .broadcast(tell, survey_completed([X, Y]));
+      .send(auctioneer, tell, survey_completed([X, Y]));
     }.

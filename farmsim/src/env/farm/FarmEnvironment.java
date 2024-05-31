@@ -17,8 +17,7 @@ public class FarmEnvironment extends Environment {
 
     /* constants */
 
-    public static final int GRID_SIZE = 25;
-    public static final int GARB  = 16;
+    public static final int GRID_SIZE = 17;
 
     public static final int FIELD = 32;
     public static final int PLANTED = 64;
@@ -26,7 +25,7 @@ public class FarmEnvironment extends Environment {
     public static final int DEAD = 256;
     public static final int HARVESTABLE = 512;
 
-    private static final int MATURITY_AGE = 200;
+    private static final int MATURITY_AGE = 300;
     private static final int WATERING_INTERVAL = 5;
     private static final double DEATH_PROBABILITY = 0.05;
     private static final double HEALTH_DECREASE = 0.10;
@@ -43,8 +42,6 @@ public class FarmEnvironment extends Environment {
     private FarmModel model;
     private FarmView  view;
 
-    private Map<Integer, List<Location>> routes = new HashMap<>();
-
     @Override
     public void init(String[] args) {
         model = new FarmModel();
@@ -55,7 +52,6 @@ public class FarmEnvironment extends Environment {
 
     @Override
     public boolean executeAction(String ag, Structure action) {
-        
         int agentId = getAgentId(ag);
         try {
             if (action.getFunctor().equals("move_towards")) {
@@ -94,6 +90,7 @@ public class FarmEnvironment extends Environment {
         } catch (Exception e) {
         }
         informAgsEnvironmentChanged();
+        model.simulatePlantGrowth();
         return true;
     }
 
@@ -102,7 +99,8 @@ public class FarmEnvironment extends Environment {
     
         Location harvesterLocation = model.getAgPos(HARVESTER_ID);
         addPercept(Literal.parseLiteral("pos(harvester" + "," + harvesterLocation.x + "," + harvesterLocation.y + ")"));
-        
+
+       
         Location irrigationRobotLocation = model.getAgPos(IRRIGATION_ROBOT_ID);
         addPercept(Literal.parseLiteral("pos(irrigation_robot" + "," + irrigationRobotLocation.x + "," + irrigationRobotLocation.y + ")"));
     
@@ -127,9 +125,9 @@ public class FarmEnvironment extends Environment {
                 String idStr = agName.replace("drone", "");
                 int id = Integer.parseInt(idStr);
                 return id - 1;
-            } else if (agName.equals("irrigation_robot")) {
-                return 3;
             } else if (agName.equals("harvester")) {
+                return 3;
+            } else if (agName.equals("irrigation_robot")) {
                 return 4;
             } else if (agName.equals("auctioneer")) {
                 return 5;
@@ -147,9 +145,8 @@ public class FarmEnvironment extends Environment {
 
         private double[][] plantHealth;
         private int[][] plantAge;
-        private boolean[][] plantWatered;
         private int[][] lastWatered;
-        private boolean[][] isHarvestable;
+        private Map<Integer, Location> lastLocations;
 
         Random random = new Random(System.currentTimeMillis());
 
@@ -158,17 +155,16 @@ public class FarmEnvironment extends Environment {
 
             plantHealth = new double[GRID_SIZE][GRID_SIZE];
             plantAge = new int[GRID_SIZE][GRID_SIZE];
-            plantWatered = new boolean[GRID_SIZE][GRID_SIZE];
             lastWatered = new int[GRID_SIZE][GRID_SIZE];
-            isHarvestable = new boolean[GRID_SIZE][GRID_SIZE];
+            lastLocations = new HashMap<>();
 
             try {
                 setAgPos(0, 0, 0); // Drone 1 at (0, 0)
                 setAgPos(1, GRID_SIZE - 1, 0); // Drone 2 at (25, 0)
                 setAgPos(2, 0, GRID_SIZE - 1); // Drone 3 at (0, 25)
                 
-                setAgPos(3, GRID_SIZE / 2, GRID_SIZE / 2); // Irrigation robot at the center
-                setAgPos(4, GRID_SIZE - 1, GRID_SIZE - 1); // Harvester at the bottom right corner
+                setAgPos(IRRIGATION_ROBOT_ID, GRID_SIZE / 2, GRID_SIZE / 2); // Irrigation robot at the center
+                setAgPos(HARVESTER_ID, GRID_SIZE - 1, GRID_SIZE - 1); // Harvester at the bottom right corner
     
             } catch (Exception e) {
                 e.printStackTrace();
@@ -183,8 +179,31 @@ public class FarmEnvironment extends Environment {
             }
         }
 
+        @Override
+        public Location getAgPos(int agentId) {
+            return lastLocations.get(agentId);
+        }
+
+        @Override
+        public void setAgPos(int agentId, Location loc) {
+            lastLocations.remove(agentId);
+            Location oldLoc = getAgPos(agentId);
+            if (oldLoc != null) {
+                remove(AGENT, oldLoc.x, oldLoc.y);
+            }
+            add(AGENT, loc.x, loc.y);
+            lastLocations.put(agentId, loc);
+        }
+
+        @Override
+        public void setAgPos(int agentId, int x, int y) {
+           setAgPos(agentId, new Location(x, y));
+        }
+
         void plant(int x, int y) {
             if (hasObject(FIELD, x, y)) {
+                plantHealth[x][y] = 100;
+                plantAge[x][y] = 0;
                 add(PLANTED, x, y);
                 plantAge[x][y] = 0;
                 logger.info("Planted: (" + x + "," + y + ")");
@@ -193,13 +212,13 @@ public class FarmEnvironment extends Environment {
         }
         
         void harvest(int x, int y) {
-            if (hasObject(FIELD, x, y)) {
-                remove(PLANTED, x, y);
-                if (hasObject(WATERED, x, y)) {
-                    remove(WATERED, x, y);
-                }
-                logger.info("Harvested: (" + x + "," + y + ")");
-                updatePercepts(); // Update percepts after harvesting
+            plantHealth[x][y] = 100;
+            plantAge[x][y] = 0;
+            plantAge[x][y] = 0;
+            remove(HARVESTABLE, x, y);
+            remove(PLANTED, x, y);
+            if (hasObject(WATERED, x, y)) {
+                remove(WATERED, x, y);
             }
         }
 
@@ -222,9 +241,8 @@ public class FarmEnvironment extends Environment {
                 fieldState = "HARVESTABLE";
             } else {
                 fieldState = "EMPTY";
+                fieldHealth = 0;
             }
-
-            logger.info("Field state: " + fieldState);
         
             Literal plantStatusPercept = Literal.parseLiteral("plant_status(" + x + "," + y + "," + "\"" + fieldState + "\"" + "," + fieldHealth + ")");
             addPercept(agentName, plantStatusPercept);
@@ -241,13 +259,12 @@ public class FarmEnvironment extends Environment {
             }
         }
 
-        void simulatePlanGrow() {
+        void simulatePlantGrowth() {
             for (int x = 0; x < GRID_SIZE; x++) {
                 for (int y = 0; y < GRID_SIZE; y++) {
                     if (hasObject(PLANTED, x, y)) {
                         plantAge[x][y]++;
                         if (plantAge[x][y] >= MATURITY_AGE) {
-                            isHarvestable[x][y] = true;
                             remove(PLANTED, x, y);
                             add(HARVESTABLE, x, y);
                         }
@@ -274,7 +291,7 @@ public class FarmEnvironment extends Environment {
 
         public FarmView(FarmModel model) {
             super(model, "Farm World", 600);
-            defaultFont = new Font("Arial", Font.BOLD, 18);
+            defaultFont = new Font("Arial", Font.BOLD, 14);
             setVisible(true);
             repaint();
         }
@@ -306,10 +323,10 @@ public class FarmEnvironment extends Environment {
             if (id < 3) {
                 label = "D" + (id + 1);
                 c = Color.orange;
-            } else if (id == 3) {
+            } else if (id == IRRIGATION_ROBOT_ID) {
                 label = "I";
                 c = Color.blue;
-            } else if (id == 4) {
+            } else if (id == HARVESTER_ID) {
                 label = "H";
                 c = Color.magenta;
             } else {
@@ -320,16 +337,17 @@ public class FarmEnvironment extends Environment {
             super.drawAgent(g, x, y, c, -1);
             g.setColor(Color.black);
             super.drawString(g, x, y, defaultFont, label);
-            repaint();
         }
     
         private void drawField(Graphics g, int x, int y) {
-            g.setColor(Color.green);
+            Color brown = new Color(188, 143, 143);
+            g.setColor(brown);
             g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
         }
     
         private void drawPlanted(Graphics g, int x, int y) {
-            g.setColor(Color.orange);
+            Color green = new Color(60, 179, 113);
+            g.setColor(green);
             g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
         }
     
@@ -344,7 +362,7 @@ public class FarmEnvironment extends Environment {
         }
 
         private void drawHarvestable(Graphics g, int x, int y) {
-            g.setColor(Color.yellow);
+            g.setColor(Color.orange);
             g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
         }
     }
