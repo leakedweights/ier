@@ -12,12 +12,11 @@
 
 +blocked(X, Y, Agent) : true <-
     .my_name(Name);
-    .print("Blocked by ", Agent);
     ?pos(Name, PosX, PosY);
     .send(Agent, achieve, conflict([X,Y], [PosX, PosY])).
 
 +!conflict([X,Y], [PosX, PosY]) : true <-
-    !move_towards(PosX - X, PosY + Y).
+    move_towards(PosX - X, PosY + Y).
 
 +!bid([X, Y])[source(auctioneer)] : true <-
 

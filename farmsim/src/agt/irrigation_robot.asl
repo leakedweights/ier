@@ -1,70 +1,88 @@
 !start.
 
-+!start : true <- 
-    !waterPlants.
- 
-+plant_status(X,Y,Health).
++!start <-
+    .print("Irrigation Robot started.");
 
-+dryPlants(X,Y).
+    .wait(1000);
 
-+!waterPlants : true <- 
-    for(.member(get_info_from_drone(X,Y,Health), [X,Y,Health])){
-        if(Health< 40){
-            +dryPlants(X,Y);
-        }
-    }
-    .findall([X, Y], dryPlants(X, Y), PlantsHealthBelow40);
+    .queue.create(LowHealthQ);
+    .queue.create(RegularQ);
+
+    +low_health_queue(LowHealthQ);
+    +water_queue(RegularQ).
+
++blocked(X, Y, Agent) : true <-
+    .my_name(Name);
+    ?pos(Name, PosX, PosY);
+    .send(Agent, achieve, conflict([X,Y], [PosX, PosY])).
+
++!conflict([X,Y], [PosX, PosY]) : true <-
+    move_towards(math.abs(PosX - X), math.abs(PosY + Y)).
+
++plant_status(X, Y, Health)[source(S)] : true <-
+    ?low_health_queue(LowHealthQ);
+    ?water_queue(RegularQ);
     
-    .print(dryPlants);
+    if(.length(LowHealthQ, 0) & .length(RegularQ, 0)) {
+        !update_queue;
+        !iterate;
+    } else {
+        !update_queue;
+    }.
+
++!update_queue : true <-
     .my_name(Name);
     ?pos(Name, PosX, PosY);
 
-    // If there are plants below 40 health, prioratize them
-    if(not(PlantsHealthBelow40 == [])){ 
-        
-        // If not empty, call SolveGreedyTSP with filtered plants
-        functions.SolveGreedyTSP(PlantsHealthBelow40, [PosX, PosY], PlannedRouteBelow40, PlannedCost);
-        !traverse_route(PlannedRouteBelow40);
-        
-        
+    .findall([X,Y, Health], plant_status(X, Y, Health) & Health >= 40, PlantedFields);
+    .findall([X,Y, Health], plant_status(X, Y, Health) & Health < 40, LowHealthFields);
 
-        .findall([Xx, Yx], get_info_from_drone(Xx,Yx,_), X);
-        
-        .findall([Xy, Yy], get_info_from_drone(Xy,Yy,_), Y);
-        
-        .print(X);
-        -get_info_from_drone(X,Y,_);
-    }     
-    // Now water plants above 40 health
-    .findall([X, Y], get_info_from_drone(X,Y,_), Plants);
-    .print(Plants);
-    if(not(Plants==[])){
-        functions.SolveGreedyTSP(Plants, [PosX, PosY], PlannedRoute, PlannedCost);
-        .print("Route: ", PlannedRoute, ", Cost: ", PlannedCost);
-        !traverse_route(PlannedRoute);
-        -get_info_from_drone(PlannedRoute[0], PlannedRoute[1],_);
-    }.
-    
-+!traverse_route([]) <-
-    .print("Completed the entire route.");
+    functions.SolveGreedyTSP(PlantedFields, [PosX, PosY], OptimizedPlantedFields, _);
+    functions.SolveGreedyTSP(LowHealthFields, [PosX, PosY], OptimizedLowHealthFields, _);
+
+    ?low_health_queue(LowHealthQ);
+    ?water_queue(RegularQ);
+    -low_health_queue(LowHealthQ);
+    -water_queue(RegularQ);
+
+    .queue.create(NewLowHealthQ);
+    .queue.create(NewRegularQ);
+    .queue.add_all(NewLowHealthQ, OptimizedLowHealthFields);
+    .queue.add_all(NewRegularQ, OptimizedPlantedFields);
+
+    +low_health_queue(NewLowHealthQ);
+    +water_queue(NewRegularQ).
+
++!iterate : true <-
+
     .my_name(Name);
-    ?pos(Name, X, Y);
-    water(X,Y).
-    
+    ?low_health_queue(LowHealthQ);
+    ?water_queue(RegularQ);
 
-+!traverse_route([[X,Y]|Tail]) <-
-    .print("Going to next node: (", X, ", ", Y, ")");
-    .print("Tail: ", Tail);
-    !go_to(X,Y);
-    .print("Reached node: (", X, ", ", Y, ")");
-    !traverse_route(Tail).
+    .length(LowHealthQ, LowHealthQSize);
+    .length(RegularQ, RegularQSize);
 
-+!go_to(X, Y) : true <-
+    if (not(busy(Name))) {
+        if(not(LowHealthQSize == 0)) {
+            +busy(Name);
+            .queue.remove(LowHealthQ, [X, Y]);
+            !move_and_water(X, Y);
+            !iterate;
+        } elif (not(RegularQSize == 0)) {
+            +busy(Name);
+            .queue.remove(RegularQ, [X, Y]);
+            !move_and_water(X, Y);
+            !iterate;
+        };
+    }.
+
++!move_and_water(X, Y) : true <-
     .my_name(Name);
     if(not(pos(Name, X, Y))) {
-        .print("IRRIGATION: X: ", X , "Y: ",Y);
         move_towards(X, Y);
-        !go_to(X,Y);
+        !move_and_water(X,Y);
     } else {
-      .print("Arrived at: (", X, ",", Y, ")"); 
+      water(X, Y);
+      .abolish(plant_status(X, Y, _));
+      -busy(Name);
     }.

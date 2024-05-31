@@ -17,12 +17,11 @@
 
 +blocked(X, Y, Agent) : true <-
     .my_name(Name);
-    .print("Blocked by ", Agent);
     ?pos(Name, PosX, PosY);
     .send(Agent, achieve, conflict([X,Y], [PosX, PosY])).
 
 +!conflict([X,Y], [PosX, PosY]) : true <-
-    !move_towards(PosX - X, PosY + Y).
+    move_towards(PosX - X, PosY + Y).
 
 
 +plant_status(X, Y, State)[source(S)] : true <-
@@ -78,7 +77,7 @@
     .queue.add_all(NewDeadFieldQ, OptimizedDeadFields);
 
     +harvestables(NewHarvestableQ);
-    +empty_fields(NewEmptyFieldQ).
+    +empty_fields(NewEmptyFieldQ);
     +dead_fields(NewDeadFieldQ).
 
 +!iterate : true <-
@@ -131,6 +130,7 @@
       plant(X, Y);
       .abolish(plant_status(X, Y, _));
       +plant_status(X, Y, "PLANTED");
+      .send(irrigation_robot, tell, plant_status(X, Y, 100));
       -busy(Name);
     }.
 
@@ -140,7 +140,7 @@
         move_towards(X, Y);
         !move_and_remove(X,Y);
     } else {
-      water(X, Y);
+      remove(X, Y);
       .abolish(plant_status(X, Y, _));
       +plant_status(X, Y, "DEAD");
       -busy(Name);

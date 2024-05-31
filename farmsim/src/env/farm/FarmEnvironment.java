@@ -188,12 +188,12 @@ public class FarmEnvironment extends Environment {
             blockedState = new ConcurrentHashMap <>();
 
             try {
-                setAgPos(0, 0, 0); // Drone 1 at (0, 0)
-                setAgPos(1, GRID_SIZE - 1, 0); // Drone 2 at (25, 0)
-                setAgPos(2, 0, GRID_SIZE - 1); // Drone 3 at (0, 25)
+                setAgPos(0, 0, 0);
+                setAgPos(1, GRID_SIZE - 1, 0);
+                setAgPos(2, 0, GRID_SIZE - 1);
                 
-                setAgPos(IRRIGATION_ROBOT_ID, GRID_SIZE / 2, GRID_SIZE / 2); // Irrigation robot at the center
-                setAgPos(HARVESTER_ID, GRID_SIZE - 1, GRID_SIZE - 1); // Harvester at the bottom right corner
+                setAgPos(IRRIGATION_ROBOT_ID, GRID_SIZE / 2, GRID_SIZE - 1);
+                setAgPos(HARVESTER_ID, GRID_SIZE - 1, GRID_SIZE - 1);
     
             } catch (Exception e) {
                 e.printStackTrace();
