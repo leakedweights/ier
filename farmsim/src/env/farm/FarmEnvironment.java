@@ -9,6 +9,7 @@ import jason.environment.grid.Location;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.FontMetrics;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,9 +28,9 @@ public class FarmEnvironment extends Environment {
     public static final int HARVESTABLE = 512;
 
     private static final int MATURITY_AGE = 300;
-    private static final int WATERING_INTERVAL = 5;
+    private static final int WATERING_INTERVAL = 100;
     private static final double DEATH_PROBABILITY =  0.001;
-    private static final double HEALTH_DECREASE = 0.10;
+    private static final double HEALTH_DECREASE = 0.5;
 
     private static final int NUM_DRONES = 3;
     private static final int HARVESTER_ID = 3;
@@ -94,7 +95,7 @@ public class FarmEnvironment extends Environment {
         }
         informAgsEnvironmentChanged();
         model.simulatePlantGrowth();
-        model.simulatePlantDeath_Random();
+        model.simulatePlantDeath();
         return true;
     }
 
@@ -217,29 +218,25 @@ public class FarmEnvironment extends Environment {
         }
 
         void harvest(int x, int y) {
-            plantHealth[x][y] = 100;
-            plantAge[x][y] = 0;
+            plantHealth[x][y] = 0;
             plantAge[x][y] = 0;
             remove(HARVESTABLE, x, y);
             remove(PLANTED, x, y);
-            if (hasObject(WATERED, x, y)) {
-                remove(WATERED, x, y);
-            }
+            remove(WATERED, x, y);
         }
 
         void remove(int x, int y) {
             plantHealth[x][y] = 100;
             plantAge[x][y] = 0;
-            plantAge[x][y] = 0;
             remove(DEAD, x, y);
             remove(PLANTED, x, y);
-            if (hasObject(WATERED, x, y)) {
-                remove(WATERED, x, y);
-            }
+            remove(WATERED, x, y);
         }
     
         void water(int x, int y) {
             if (hasObject(PLANTED, x, y)) {
+                plantHealth[x][y] = 100;
+                lastWatered[x][y] = 0;
                 add(WATERED, x, y);
             }
         }
@@ -265,15 +262,30 @@ public class FarmEnvironment extends Environment {
             addPercept(agentName, plantStatusPercept);
         }
     
-        void simulatePlantDeath_Random() {
+        void simulatePlantDeath() {
             for (int x = 0; x < GRID_SIZE; x++) {
                 for (int y = 0; y < GRID_SIZE; y++) {
-                    if (hasObject(PLANTED, x, y) && random.nextDouble() < DEATH_PROBABILITY) {
-                        remove(PLANTED, x, y);
-                        if (hasObject(WATERED, x, y)) {
-                            remove(WATERED, x, y);
+                    if (hasObject(PLANTED, x, y) && !(hasObject(HARVESTABLE, x, y))) {
+
+                        //not getting water
+                        lastWatered[x][y]++;
+                        if (lastWatered[x][y] > WATERING_INTERVAL) {
+                            plantHealth[x][y] -= HEALTH_DECREASE;
+                            if (plantHealth[x][y] <= 0){
+                                remove(PLANTED, x, y);
+                                if (hasObject(WATERED, x, y)) {
+                                    remove(WATERED, x, y);
+                                }
+                                add(DEAD, x, y);
+                            }
                         }
-                        add(DEAD, x, y);
+                        else if (random.nextDouble() < DEATH_PROBABILITY) {
+                            remove(PLANTED, x, y);
+                            if (hasObject(WATERED, x, y)) {
+                                remove(WATERED, x, y);
+                            }
+                            add(DEAD, x, y);
+                        }
                     }
                 }
             }
@@ -284,8 +296,9 @@ public class FarmEnvironment extends Environment {
                 for (int y = 0; y < GRID_SIZE; y++) {
                     if (hasObject(PLANTED, x, y)) {
                         plantAge[x][y]++;
-                        if (plantAge[x][y] >= MATURITY_AGE) {
+                        if (plantAge[x][y] >= MATURITY_AGE && (hasObject(WATERED, x, y))) {
                             remove(PLANTED, x, y);
+                            remove(WATERED, x, y);
                             add(HARVESTABLE, x, y);
                         }
                     }
@@ -342,9 +355,11 @@ public class FarmEnvironment extends Environment {
                     break;
                 case FarmEnvironment.PLANTED:
                     drawPlanted(g, x, y);
+                    drawHealth(g, x, y);
                     break;
                 case FarmEnvironment.WATERED:
                     drawWatered(g, x, y);
+                    drawHealth(g, x, y);
                     break;
                 case FarmEnvironment.DEAD:
                     drawDead(g, x, y);
@@ -404,6 +419,29 @@ public class FarmEnvironment extends Environment {
         private void drawHarvestable(Graphics g, int x, int y) {
             g.setColor(Color.orange);
             g.fillRect(x * cellSizeW, y * cellSizeH, cellSizeW, cellSizeH);
+        }
+
+        private void drawHealth(Graphics g, int x, int y) {
+            FarmModel model = (FarmModel) super.model;
+            int health = (int) model.plantHealth[x][y];
+            g.setColor(Color.BLACK);
+            g.setFont(defaultFont);
+            
+            // Calculate the position to draw the text
+            FontMetrics metrics = g.getFontMetrics(defaultFont);
+            int textWidth = metrics.stringWidth(Integer.toString(health));
+            int textHeight = metrics.getHeight();
+            int textX = x * cellSizeW + (cellSizeW - textWidth) / 2;
+            int textY = y * cellSizeH + (cellSizeH - textHeight) / 2 + metrics.getAscent();
+        
+            // Clear the area where the text will be drawn
+            g.clearRect(textX, textY - metrics.getAscent(), textWidth, textHeight);
+        
+            // Draw the text
+            g.drawString(Integer.toString(health), textX, textY);
+            int cellX = x * cellSizeW;
+            int cellY = y * cellSizeH;
+            repaint(cellX, cellY, cellSizeW, cellSizeH);
         }
     }
 }
