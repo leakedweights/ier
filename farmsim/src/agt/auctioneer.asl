@@ -1,10 +1,12 @@
 // initialization
 
-!start_auction.
+!start.
 
-+!start_auction : true <-
++!start : true <-
+    .print("Auctioneer started.");
     .findall([X,Y], field(X, Y), Fields);
     +auction_queue(Fields);
+    .wait(1000);
     !next_auction.
 
 // auction schedule

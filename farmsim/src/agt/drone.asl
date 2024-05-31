@@ -4,6 +4,7 @@
 
 +!start <-
     .print("Drone started.");
+    .wait(1000);
     .my_name(Name);
     +route(Name, []).
     
@@ -59,7 +60,6 @@
 
 
 +plant_status(X, Y, PlantState, PlantHealth) : true <-
-    .print("Status of ", [X, Y], ": ", PlantState, ", Health: ", PlantHealth);
 
     if(PlantState == "HARVESTABLE" | PlantState == "EMPTY") {
         .send(harvester, tell, plant_status(X, Y, PlantState));
@@ -78,5 +78,5 @@
     } else {
       .print("Surveying: (", X, ",", Y, ")");
       survey(X, Y);
-      .broadcast(tell, survey_completed([X, Y]));
+      .send(auctioneer, tell, survey_completed([X, Y]));
     }.
