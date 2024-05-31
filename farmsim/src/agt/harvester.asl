@@ -5,6 +5,8 @@
 
     .wait(1000);
 
+    +d_last_update(0);
+
     .queue.create(HarvestableQ);
     .queue.create(EmptyFieldQ);
 
@@ -16,15 +18,23 @@
     ?harvestables(HarvestableQ);
     ?empty_fields(EmptyFieldQ);
 
-    .length(HarvestableQ, HarvestableQSize);
-    .length(EmptyFieldQ, EmptyFieldQSize);
-
     .findall([X, Y, State], plant_status(X, Y, State), PlantStatuses);
     .length(PlantStatuses, StatusCount);
 
-    if(EmptyFieldQSize == 0 & HarvestableQSize == 0) {
+    ?d_last_update(UpdateDiff);
+
+    if(.length(HarvestableQ, 0) & .length(EmptyFieldQ, 0)) {
         !update_queue;
+        -d_last_update(UpdateDiff);
+        +d_last_update(0);
         !iterate;
+    } elif (UpdateDiff > 5) {
+        !update_queue;
+        -d_last_update(UpdateDiff);
+        +d_last_update(0);
+    } else {
+        -d_last_update(UpdateDiff);
+        +d_last_update(UpdateDiff + 1);
     }.
 
 +!update_queue : true <-
@@ -52,24 +62,28 @@
     +empty_fields(NewEmptyFieldQ).
 
 +!iterate : true <-
+    .my_name(Name);
     ?harvestables(HarvestableQ);
     ?empty_fields(EmptyFieldQ);
 
     .length(HarvestableQ, HarvestableQSize);
     .length(EmptyFieldQ, EmptyFieldQSize);
 
-    if(not(HarvestableQSize == 0)) {
-        .queue.remove(HarvestableQ, [X, Y]);
-        !move_and_harvest(X, Y);
-        !iterate;
-    } elif (not(EmptyFieldQSize == 0)) {
-        .queue.remove(EmptyFieldQ, [X, Y]);
-        .print("Calling move to: (", X, ",", Y, ")");
-        !move_and_plant(X, Y);
-        .print("Move and plant finished.");
-
-        !iterate;
+    if (not(busy(Name))) {
+        if(not(HarvestableQSize == 0)) {
+            +busy(Name);
+            .queue.remove(HarvestableQ, [X, Y]);
+            !move_and_harvest(X, Y);
+            !iterate;
+        } elif (not(EmptyFieldQSize == 0)) {
+            +busy(Name);
+            .queue.remove(EmptyFieldQ, [X, Y]);
+            !move_and_plant(X, Y);
+            !iterate;
+        };
     }.
+
+    
 
 +!move_and_harvest(X, Y) : true <-
     .my_name(Name);
@@ -77,20 +91,22 @@
         move_towards(X, Y);
         !move_and_harvest(X,Y);
     } else {
+      .print("Harvesting: (", X, ",", Y, ")");
       harvest(X, Y);
+      .abolish(plant_status(X, Y, _));
+      +plant_status(X, Y, "EMPTY");
+      -busy(Name);
     }.
 
 +!move_and_plant(X, Y) : true <-
     .my_name(Name);
     if(not(pos(Name, X, Y))) {
-        .print("Moving to: (", X, ",", Y, ")");
         move_towards(X, Y);
         !move_and_plant(X,Y);
     } else {
-      ?harvestables(HarvestableQ);
       .print("Planting: (", X, ",", Y, ")");
-
       plant(X, Y);
       .abolish(plant_status(X, Y, _));
       +plant_status(X, Y, "PLANTED");
+      -busy(Name);
     }.

@@ -42,8 +42,6 @@ public class FarmEnvironment extends Environment {
     private FarmModel model;
     private FarmView  view;
 
-    private Map<Integer, List<Location>> routes = new HashMap<>();
-
     @Override
     public void init(String[] args) {
         model = new FarmModel();
@@ -145,9 +143,8 @@ public class FarmEnvironment extends Environment {
 
         private double[][] plantHealth;
         private int[][] plantAge;
-        private boolean[][] plantWatered;
         private int[][] lastWatered;
-        private boolean[][] isHarvestable;
+        private Map<Integer, Location> lastLocations;
 
         Random random = new Random(System.currentTimeMillis());
 
@@ -156,9 +153,8 @@ public class FarmEnvironment extends Environment {
 
             plantHealth = new double[GRID_SIZE][GRID_SIZE];
             plantAge = new int[GRID_SIZE][GRID_SIZE];
-            plantWatered = new boolean[GRID_SIZE][GRID_SIZE];
             lastWatered = new int[GRID_SIZE][GRID_SIZE];
-            isHarvestable = new boolean[GRID_SIZE][GRID_SIZE];
+            lastLocations = new HashMap<>();
 
             try {
                 setAgPos(0, 0, 0); // Drone 1 at (0, 0)
@@ -181,20 +177,43 @@ public class FarmEnvironment extends Environment {
             }
         }
 
+        @Override
+        public Location getAgPos(int agentId) {
+            return lastLocations.get(agentId);
+        }
+
+        @Override
+        public void setAgPos(int agentId, Location loc) {
+            lastLocations.remove(agentId);
+            Location oldLoc = getAgPos(agentId);
+            if (oldLoc != null) {
+                remove(AGENT, oldLoc.x, oldLoc.y);
+            }
+            add(AGENT, loc.x, loc.y);
+            lastLocations.put(agentId, loc);
+        }
+
+        @Override
+        public void setAgPos(int agentId, int x, int y) {
+           setAgPos(agentId, new Location(x, y));
+        }
+
         void plant(int x, int y) {
             if (hasObject(FIELD, x, y)) {
-                plantHealth[x][y] = 0;
-                isHarvestable[x][y] = false;
+                plantHealth[x][y] = 100;
+                plantAge[x][y] = 0;
                 add(PLANTED, x, y);
             }
         }
 
         void harvest(int x, int y) {
-            if (hasObject(FIELD, x, y)) {
-                remove(PLANTED, x, y);
-                if (hasObject(WATERED, x, y)) {
-                    remove(WATERED, x, y);
-                }
+            plantHealth[x][y] = 100;
+            plantAge[x][y] = 0;
+            plantAge[x][y] = 0;
+            remove(HARVESTABLE, x, y);
+            remove(PLANTED, x, y);
+            if (hasObject(WATERED, x, y)) {
+                remove(WATERED, x, y);
             }
         }
     
@@ -216,6 +235,7 @@ public class FarmEnvironment extends Environment {
                 fieldState = "HARVESTABLE";
             } else {
                 fieldState = "EMPTY";
+                fieldHealth = 0;
             }
         
             Literal plantStatusPercept = Literal.parseLiteral("plant_status(" + x + "," + y + "," + "\"" + fieldState + "\"" + "," + fieldHealth + ")");
@@ -239,7 +259,6 @@ public class FarmEnvironment extends Environment {
                     if (hasObject(PLANTED, x, y)) {
                         plantAge[x][y]++;
                         if (plantAge[x][y] >= MATURITY_AGE) {
-                            isHarvestable[x][y] = true;
                             remove(PLANTED, x, y);
                             add(HARVESTABLE, x, y);
                         }
